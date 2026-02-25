@@ -1,7 +1,5 @@
 # GRSC-CB
 
-[toc]
-
 ## Introduzione
 
 * the paper wants to define a nature reserve design problem using a mathematical model
@@ -83,12 +81,12 @@ $$
 
 * $$S_1$$ $$\subseteq S$$ → set of species that need to stay in the core area
 * $$S_2$$ $$\subseteq S, S_1 \cup S_2 = S, S_1 \cap S_2 = \varnothing $$ → the other species
-* $$w: V\times S \rarr \R^+$$ → **habitat suitability function** measures how advisable is a site $$i \in V$$ for a specie $$s \in S$$
+* $$w: V\times S \rightarrow \mathbb{R} ^+$$ → **habitat suitability function** measures how advisable is a site $$i \in V$$ for a specie $$s \in S$$
 * therefore we can define $$V_s = \{i\in V| w(s,i) > 0\}$$ 
 * $$\lambda_s$$ $$\geq 0$$ → **minimum quota of ecological suitability** for $$s$$
 * $$s \in S$$ is considered **protected** if $$\sum_i w(s,i) \geq \lambda_s$$
 * $$0\leq$$ $$P_1$$ $$\leq |S_1|$$, $$0\leq$$ $$P_2$$ $$\leq |S_2|$$, minimum number of species respectively in $$S_1$$ and $$S_2$$ that the reserve needs to protect
-* $$c:V \rarr \R^+$$ → **cost function** of choosing the site $$i \in V$$ to be in the reserve
+* $$c:V \rightarrow \mathbb{R} ^+$$ → **cost function** of choosing the site $$i \in V$$ to be in the reserve
 
 ##### Criteria
 
