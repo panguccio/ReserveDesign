@@ -14,16 +14,16 @@
 
 #### Definitions
 
-* ==$$V$$== → **land sites** set
-* ==$$S$$== → **species** set
-* ==$$G $$== $$ = (V,E)$$ → graph where:
+* $$V$$ → **land sites** set
+* $$S$$ → **species** set
+* $$G = (V,E)$$ → graph where:
   * each **node** is a land site
   * each **arch** is given by the relationship: $$\{i,j\} \in E \iff i, j$$  share a border
-* $$\forall s \in S$$, ==$$V_S$$== $$\subseteq V $$ →  set of all land sites that are suitable for specie $$s$$
+* $$\forall s \in S$$, $$V_S$$ $$\subseteq V $$ →  set of all land sites that are suitable for specie $$s$$
 
 ##### Variables
 
-* ==$$x_i$$==, $$1 \leq i \leq |V|$$ → binary variables defined as:
+* $$x_i$$, $$1 \leq i \leq |V|$$ → binary variables defined as:
   $$
   \begin{align*}
   x_i =
@@ -80,14 +80,14 @@ $$
 
 #### Definitions
 
-* ==$$S_1$$== $$\subseteq S$$ → set of species that need to stay in the core area
-* ==$$S_2$$== $$\subseteq S, S_1 \cup S_2 = S, S_1 \cap S_2 = \varnothing $$ → the other species
-* ==$$w$$==$$: V\times S \rarr \R^+$$ → **habitat suitability function** measures how advisable is a site $$i \in V$$ for a specie $$s \in S$$
+* $$S_1$$ $$\subseteq S$$ → set of species that need to stay in the core area
+* $$S_2$$ $$\subseteq S, S_1 \cup S_2 = S, S_1 \cap S_2 = \varnothing $$ → the other species
+* $$w$$$$: V\times S \rarr \R^+$$ → **habitat suitability function** measures how advisable is a site $$i \in V$$ for a specie $$s \in S$$
 * therefore we can define $$V_s = \{i\in V| w(s,i) > 0\}$$ 
-* ==$$\lambda_s$$== $$\geq 0$$ → **minimum quota of ecological suitability** for $$s$$
+* $$\lambda_s$$ $$\geq 0$$ → **minimum quota of ecological suitability** for $$s$$
 * $$s \in S$$ is considered **protected** if $$\sum_i w(s,i) \geq \lambda_s$$
-* $$0\leq$$ ==$$P_1$$== $$\leq |S_1|$$, $$0\leq$$ ==$$P_2$$== $$\leq |S_2|$$, minimum number of species respectively in $$S_1$$ and $$S_2$$ that the reserve needs to protect
-* ==$$c$$==$$:V \rarr \R^+$$ → **cost function** of choosing the site $$i \in V$$ to be in the reserve
+* $$0\leq$$ $$P_1$$ $$\leq |S_1|$$, $$0\leq$$ $$P_2$$ $$\leq |S_2|$$, minimum number of species respectively in $$S_1$$ and $$S_2$$ that the reserve needs to protect
+* $$c$$$$:V \rarr \R^+$$ → **cost function** of choosing the site $$i \in V$$ to be in the reserve
 
 ##### Criteria
 
