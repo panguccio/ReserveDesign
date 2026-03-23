@@ -14,16 +14,16 @@
 
 #### Definitions
 
-* $$V$$ → **land sites** set
-* $$S$$ → **species** set
-* $$G = (V,E)$$ → graph where:
+* $V$ → **land sites** set
+* $S$ → **species** set
+* $G = (V,E)$ → graph where:
   * each **node** is a land site
-  * each **arch** is given by the relationship: $$\{i,j\} \in E \iff i, j$$  share a border
-* $$\forall s \in S$$, $$V_s$$ $$\subseteq V $$ →  set of all land sites that are suitable for specie $$s$$
+  * each **arch** is given by the relationship: $\{i,j\} \in E \iff i, j$  share a border
+* $\forall s \in S$, $V_s$ $\subseteq V $ →  set of all land sites that are suitable for specie $s$
 
 ##### Variables
 
-* $$x_i$$, $$1 \leq i \leq |V|$$ → binary variables defined as:
+* $x_i$, $1 \leq i \leq |V|$ → binary variables defined as:
 
   $$
   \begin{align*}
@@ -37,7 +37,7 @@
 
 ##### Constraints
 
-* $$\sum_{i \in V_s} x_i\geq 1, \quad \forall s \in S $$: assures that each specie is covered by a suitable land site 
+* $\sum_{i \in V_s} x_i\geq 1, \quad \forall s \in S $: assures that each specie is covered by a suitable land site 
 
 ##### Objective Function
 
@@ -83,26 +83,26 @@ $$
 
 #### Common definitions
 
-* $$S_1$$ $$\subseteq S$$ → set of species that need to stay in the core area
-* $$S_2$$ $$\subseteq S, S_1 \cup S_2 = S, S_1 \cap S_2 = \varnothing $$ → the other species
-* $$w: V\times S \rightarrow \mathbb{R} ^+$$ → **habitat suitability function** measures how advisable is a site $$i \in V$$ for a specie $$s \in S$$
+* $S_1$ $\subseteq S$ → set of species that need to stay in the core area
+* $S_2$ $\subseteq S, S_1 \cup S_2 = S, S_1 \cap S_2 = \varnothing $ → the other species
+* $w: V\times S \rightarrow \mathbb{R} ^+$ → **habitat suitability function** measures how advisable is a site $i \in V$ for a specie $s \in S$
 
 > [!WARNING]
 >
 > I changed the notation of the habitat suitability function, to make it more intuitive: $w(i, s)$ instead of $w_i^s$
 
-* therefore we can define $$V_s = \{i\in V| w(s,i) > 0\}$$ 
-* $$\lambda_s$$ $$\geq 0$$ → **minimum quota of ecological suitability** for $$s$$
-* $$s \in S$$ is considered **protected** if $$\sum_i w(i,s) \geq \lambda_s$$
-* $$0\leq$$ $$P_1$$ $$\leq |S_1|$$, $$0\leq$$ $$P_2$$ $$\leq |S_2|$$, minimum number of species respectively in $$S_1$$ and $$S_2$$ that the reserve needs to protect
-* $$c:V \rightarrow \mathbb{R} ^+$$ → **cost function** of choosing the site $$i \in V$$ to be in the reserve
+* therefore we can define $V_s = \{i\in V| w(s,i) > 0\}$ 
+* $\lambda_s$ $\geq 0$ → **minimum quota of ecological suitability** for $s$
+* $s \in S$ is considered **protected** if $\sum_i w(i,s) \geq \lambda_s$
+* $0\leq$ $P_1$ $\leq |S_1|$, $0\leq$ $P_2$ $\leq |S_2|$, minimum number of species respectively in $S_1$ and $S_2$ that the reserve needs to protect
+* $c:V \rightarrow \mathbb{R} ^+$ → **cost function** of choosing the site $i \in V$ to be in the reserve
 
 ##### Criteria
 
-1. at least $$P_1$$ species of $$S_1$$ in the core area
-2. at least $$P_2$$ species of $$S_2$$ in the reserve
-3. $$\lambda_s$$ is satisfied for all species
-4. at maximum $$k$$ connected areas
+1. at least $P_1$ species of $S_1$ in the core area
+2. at least $P_2$ species of $S_2$ in the reserve
+3. $\lambda_s$ is satisfied for all species
+4. at maximum $k$ connected areas
 5. every land site has a core and a buffer area
 
 ###### Observation
@@ -122,7 +122,7 @@ $$
 
 * $x_i$ defined as before
 
-* $$z_i$$, $$1 \leq i \leq |V|$$ → binary variables defined as:
+* $z_i$, $1 \leq i \leq |V|$ → binary variables defined as:
 
   $$
   \begin{align*}
@@ -134,7 +134,7 @@ $$
   \end{align*}
   $$
 
-* $$u_s$$, $$1 \leq s \leq |S|$$ → binary variables defined as:
+* $u_s$, $1 \leq s \leq |S|$ → binary variables defined as:
 
   $$
   \begin{align*}
