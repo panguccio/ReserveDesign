@@ -22,13 +22,11 @@ grsc.addConstr(gb.quicksum(u[s] for s in instance.S_1) >= instance.P_1, name="S1
 grsc.addConstr(gb.quicksum(u[s] for s in instance.S_2) >= instance.P_2, name="S2-PROTECT")
 
 for v in instance.V:
-    grsc.addConstr(z[v] <= x[v], name=f"LINK")
-    
+    grsc.addConstr(z[v] <= x[v], name=f"LINK")    
     
 grsc.optimize()
 
-
-print("Status:", grsc.Status)  # 2 = ottimo trovato
+print("Status:", grsc.Status)
 print("Objective:", grsc.ObjVal)
 
 print("\n--- Variabili x ---")
