@@ -1,19 +1,29 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.spatial import Delaunay
 import networkx as nx
 
 class GRSC_BInstance:
     def __init__(self):
-        self.V = list(range(5))
+        
         self.S = list(range(12))
         self.S_1 = list(range(6))
         self.S_2 = list(range(6, 12))
         self.P_1 = 6
         self.P_2 = 6
         self.k = 3
-
-        # Grafo dei land sites
+        
+        self.points = np.random.rand(8, 2)
+        # plt.scatter(self.points[:, 0], self.points[:, 1])
+        tri = Delaunay(self.points)
         self.G = nx.Graph()
-        self.G.add_nodes_from(self.V)
-        self.G.add_edges_from([(0,1), (1,3), (0,2), (2,3), (2,4)])  # definisci tu i confini
+        self.G.add_nodes_from(range(8))
+        for i in range(8):
+            self.G.add_edge(tri.simplices[i][0], tri.simplices[i][1])
+            self.G.add_edge(tri.simplices[i][1], tri.simplices[i][2])
+            self.G.add_edge(tri.simplices[i][0], tri.simplices[i][2])
+        
+        self.V = self.G.nodes
 
     def c(self, v):
         return 1 if v < 3 else 2
@@ -42,5 +52,9 @@ class GRSC_BInstance:
         neighborhood.remove(v)  # rimuovi il nodo stesso
         return neighborhood
     
+    def plot(self):
+        nx.draw(instance.G, pos=instance.points)
+    
 instance = GRSC_BInstance()
-print(instance.neighborhood(0))
+print(instance.V)
+instance.plot()
