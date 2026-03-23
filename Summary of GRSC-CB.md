@@ -118,8 +118,6 @@ $$
 \end{align*}
 $$
 
-
-
 #### Variables
 
 * $x_i$ defined as before
