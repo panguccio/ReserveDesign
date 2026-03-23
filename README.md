@@ -13,6 +13,6 @@ venv\Scripts\activate      # Windows
 ```
 3. Install dependencies:
 ```bash
-pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 ```
 4. Launch Jupyter Notebook `test.ipynb` and `scalability.ipynb`
