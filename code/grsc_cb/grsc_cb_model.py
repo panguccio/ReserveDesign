@@ -4,6 +4,7 @@ import numpy as np
 class GRSC_CB_Model:
     def __init__(self, instance):
         
+        self.instance = instance
         self.model = gb.Model("GRSC-CB")
         self.model.setParam('OutputFlag', 0)
         
@@ -45,3 +46,19 @@ class GRSC_CB_Model:
             
     def solve(self, callback=None):
         self.model.optimize(callback)
+        
+    def print_solution(self):
+        print("Status:", self.model.Status)
+        print("Objective:", self.model.ObjVal)
+
+        print("\n--- Variabili x ---")
+        for v in self.instance.V:
+            print(f"  x[{v}] = {self.x[v].X}")
+
+        print("\n--- Variabili z ---")
+        for v in self.instance.V:
+            print(f"  z[{v}] = {self.z[v].X}")
+
+        print("\n--- Variabili u ---")
+        for s in self.instance.S:
+            print(f"  u[{s}] = {self.u[s].X}")
