@@ -1,12 +1,8 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.spatial import Delaunay
 import networkx as nx
-import gurobipy as gb
 
 class GRSC_CB_Instance:
     """
-    Class that builds the model for GRSC-CB.
+    Class creates an instance for GRSC-CB problem.
     
     Attributes
     ----------
@@ -18,9 +14,9 @@ class GRSC_CB_Instance:
         List of sites of species 1 that need to be protected in the core areas.
     S_2 : list
         List of sites of species 2 defined as S_2 = S\S_1.
-    P1 : int
+    P_1 : int
         Number of species 1 that need to be protected.
-    P2 : int
+    P_2 : int
         Number of species 2 that need to be protected.
     k : int
         Maximum number of connected components allowed.
@@ -38,6 +34,7 @@ class GRSC_CB_Instance:
         self.E = E
         self.S_1 = S_1
         self.S_2 = S_2
+        self.S = S_1 + S_2
         self.P_1 = P_1
         self.P_2 = P_2
         self.k = k
@@ -57,11 +54,15 @@ class GRSC_CB_Instance:
         return list(nx.ego_graph(self.G, i, radius=self.d).nodes())
     
     def delta_d(self, i):
-        neighborhood = self.delta_d_plus(i, d=self.d)
+        neighborhood = self.delta_d_plus(i)
         neighborhood.remove(i)  # removes node i
         return neighborhood
     
-    def plot(self):
-        nx.draw(self.G, pos=self.V)
+    def __str__(self):
+        return (
+        f"GRSC_CB_Instance(n={len(self.V)}, m={len(self.E)}, "
+        f"|S1|={len(self.S_1)}, |S2|={len(self.S_2)}, "
+        f"P1={self.P_1}, P2={self.P_2}, k={self.k}, d={self.d})"
+        )
  
         
