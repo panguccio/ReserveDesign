@@ -29,9 +29,10 @@ class GRSC_CB_Instance:
     d : int
         Width of the protection buffer.
     """
-    def __init__(self, V, E, S_1, S_2, P_1, P_2, k, w, lambda_s, c, d=1):
+    def __init__(self, V, E, pos, S_1, S_2, P_1, P_2, k, w, lambda_s, c, d=1):
         self.V = V
         self.E = E
+        self.pos = pos
         self.S_1 = S_1
         self.S_2 = S_2
         self.S = S_1 + S_2
@@ -57,6 +58,21 @@ class GRSC_CB_Instance:
         neighborhood = self.delta_d_plus(i)
         neighborhood.remove(i)  # removes node i
         return neighborhood
+    
+    def draw_graph(self, x=None, z=None, u=None):
+        color_map = []
+        if x is None or z is None:
+            color_map = ['grey' for _ in self.V]  # Default color for all nodes
+        else:
+            for i in self.V:
+                if z[i].X > 0.5:
+                    color_map.append('green')  # Selected nodes
+                elif x[i].X > 0.5:
+                    color_map.append('yellow')  # Buffer nodes
+                else:
+                    color_map.append('grey')  # Non-selected nodes
+
+        nx.draw(self.G, self.pos, node_color=color_map, with_labels=True)
     
     def __str__(self):
         return (

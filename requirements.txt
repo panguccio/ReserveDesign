@@ -3,3 +3,4 @@ gurobipy
 networkx
 matplotlib
 scipy
+jupyter_contrib_nbextensions

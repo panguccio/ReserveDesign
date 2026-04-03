@@ -30,6 +30,7 @@ instance = GRSC_CB_Instance(V=G.nodes,
 model = GRSC_CB_Model(instance)
 model.solve()
 model.print_solution()
+model.print_graph()
         
-nx.draw(instance.G, pos=points)    
+  
 

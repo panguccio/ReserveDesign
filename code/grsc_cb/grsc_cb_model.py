@@ -45,20 +45,17 @@ class GRSC_CB_Model:
             self.model.addConstr(self.y[i] <= self.z[i], name=f"YZ")
             
     def solve(self, callback=None):
-        self.model.optimize(callback)
+        if callback is not None:
+            self.model.optimize(callback)
+        else:
+            self.model.optimize()
+        
+    def print_graph(self):
+        self.instance.draw_graph(self.x, self.z, self.u)
         
     def print_solution(self):
         print("Status:", self.model.Status)
         print("Objective:", self.model.ObjVal)
-
-        print("\n--- Variabili x ---")
-        for v in self.instance.V:
-            print(f"  x[{v}] = {self.x[v].X}")
-
-        print("\n--- Variabili z ---")
-        for v in self.instance.V:
-            print(f"  z[{v}] = {self.z[v].X}")
-
-        print("\n--- Variabili u ---")
-        for s in self.instance.S:
-            print(f"  u[{s}] = {self.u[s].X}")
+        print("Nodes in the reserve (x):", [i for i in self.instance.V if self.x[i].X > 0.5])
+        print("Nodes in the core (z):", [i for i in self.instance.V if self.z[i].X > 0.5])
+        print("Species protected (u):", [s for s in self.instance.S if self.u[s].X > 0.5])
