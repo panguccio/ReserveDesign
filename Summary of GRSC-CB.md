@@ -334,3 +334,186 @@ $$
 $$
 
 ## Branch and Cut
+
+* based on the separation of the connectivity cuts (CORECON)
+* additional valid inequalities are defined and also separated
+  * species cuts (SC)
+  * cover inequalities (COVER)
+  * species-cover cuts (SCC)
+* finally, heuristics are designed to find feasible solutions within the framework
+
+implement branch and cut with gurobi: https://support.gurobi.com/hc/en-us/community/posts/25514581728401-Best-practice-for-implementing-branch-and-cut-algorithm-with-gurobi
+
+### Valid inequalities
+
+#### Species cuts
+
+* a sink node $s$ is defined
+* for a certain specie, every node in $V_s$ is connected with a new arc to the sink node
+* $r$-arc nodes separators are considered with respect to $s$
+
+$$
+\sum_{i\in W_V} z_i + \sum_{j \in W_A } y_j \geq u_s, \quad \forall W \in W_s, s\in S_1
+$$
+
+#### Cover inequalities
+
+* let $W_s = \sum_{i\in V}w_i^s$
+* **cover** = a set $C_s \subset V_s$ such that $\sum_{i \in C_s} w_i^s \geq W_s - \lambda_s$ 
+* such that $V_s / C_s$ is not enough to satisfy the sustainability quota for that specie
+
+$$
+\sum_{i\in C_s} z_i \geq u_s, \text{if } s \in S_1
+$$
+
+$$
+\sum_{i \in C_s} x_i \geq u_s, \text{if } s\in S_2
+$$
+
+#### Species cover cuts
+
+* like species cuts, but it's $C_s$ that is connected to the sink node
+
+$$
+\sum_{i\in W_V} z_i + \sum_{j \in W_A } y_j \geq u_s, \quad \forall W \in W_s, s\in S_1
+$$
+
+### Constraint separation
+
+* $\rho = (\tilde{u},\tilde{x},\tilde{x}, \tilde{y})$ is a solution of the LP relaxation at the current node of the branch-and-bound tree
+
+#### Separation of CORECON
+
+##### Fractionary solution
+
+* we transform the graph in to a digraph: the nodes of the graphs are separated in to $i_1$ and $i_2$ with capacities defined as:
+  $$
+  \begin{align*}
+  \text{cap}_{tv} = \cases{\tilde{z_i} & \text{if $t=i$, $v=i_2$, $i\in V$,}\\\tilde{y_i} & \text{if $t=r$, $v=i_1$, $i\in V$,} \\ \infty & \text{otherwise}}
+  \end{align*}
+  $$
+
+* then a violeted connectivity cut is $(\overline{W}_V, \overline{W}_A)$  such that:
+  $$
+  \begin{align*}
+  &\overline{W}_V = \{i | (i_1, i_2) \in A_z\}\\
+  &\overline{W}_A = \{(r,i)|(r, i_1) \in A_r'\}\\
+  &\sum_{i\in \overline{W}_V} \overline{z}_i + \sum_{i \in \overline{W}_A} \overline{y}_j < \overline{z}_l
+  \end{align*}
+  $$
+
+##### Integer solution
+
+* $H$ connected components induced by $\overline{z}_i = 1$ 
+
+* if for all, $\overline{y}_i=0$, the component is not connected
+
+* the connectivity cut can then be defined as $(W_A, W_V)$ such that:
+  $$
+  \begin{align*}
+  &W_A = H \\
+  &W_V = \{j | {i,j} \in E : i \in H, j \notin H\}
+  \end{align*}
+  $$
+
+> [!NOTE]
+>
+> in both cases, downlifting is used, by allowing only $j \leq l$ for $z_l$ on the left hand side.
+
+#### Separation of SCC
+
+the same as CORECON, but $\overline{C}$ is considered.
+
+#### Separation of COVER
+
+* the feasible solutions of this separation problem (a knapsack-problem) in minimization form are the covers
+
+$$
+\begin{align*}
+\min \{\sum_{j\in V_s} \tilde{z}_jq_j| \sum_{j\in V_s} w_j^sq_j \geq W_s - \lambda \text{ and } \bold{q} \in \{0, 1\}^{|V_s|} \}
+\end{align*}
+$$
+
+* but this problem is not solved exactly, a heuristic is followed
+  * sord the nodes in a non-decreasing way by $\tilde{z}_j /w_j^s$
+  * construct a cover by iteratively picking the nodes sorted in this way, starting with smallest ration, until: $\sum_{j\in C_s} w_j^s \geq W_s - \lambda_s$
+
+#### Implementation of the cut-loop
+
+1. separate COVER and SCC/SC
+2. separate CORECON
+   * done only for nodes with $\tilde z_l \geq \tau$ where $\tau = 0.5$ or $0.1$
+   * once a violated ineq. is found, the nodes $\{i|(r,i) \in W_A \}$ are not considered for separation
+
+> [!NOTE]
+>
+> for integer solutions, only connectivity cuts (CORECON) are separated
+
+### Heuristics
+
+* **construcrion heuristic** → to generate a solution for initializing the branch and cut
+* **primal heuristic** → incorporated in the branch and cut
+* **local-branching ILP-heuristic** → to improve the solution found
+
+#### Construction and Primal heuristic
+
+##### Construction heuristic - Phase 1
+
+creates a feasible solution in  a greedy fashion:
+
+* $k$ nodes are chosen at random
+* $S_x$ is build by considering the buffer for each core node
+* while the (PROTECT) constraints are **not** valid, do:
+  * compute the distances (node weighted) between the nodes in the core and T(S)*****
+  * considers the node $i^*$ with min distance among T(S)
+  * considers the nodes on the shortest path between the core nodes and this $i^*$
+  * adds all these nodes to the core and adds also the buffer for each
+  * updates T(S)
+
+> [!NOTE]
+>
+> **[*]** T(S) = set dynamically updated of the nodes that are deemed as "helpful" if added to $S_z$,
+>
+> * "helpful" = if 
+>   * $protectedS_1$ is false (less than $P_1$ species protected) 
+>   * and the node $\in V_s$ for at least one specie with $u_s = 0$ ⇒ that's still not protected by the reserve (meaning, its suitability quota is not fulfilled with the current solution)
+>   * helpfulness is measured by the **node-cost** function $\Delta_i(S)$ (see article)
+
+##### Primal heuristic - Phase 1
+
+* used during the branch-and-cut
+* it's basically the same as the construction heuristic, but with 2 differences:
+  * in the **node-cost** function a value changes: $c_i(1-\tilde x_i)$ instead of $c_i$
+  * the randomly generated starting solutions are constructed considering nodes with: $\tilde y_i \geq 0.001$
+
+##### Post processing - Phase 2
+
+greedy local improvement procedure to remove unnecessary nodes from $S_z$
+
+* check for every node in the core (and the consequent buffer nodes) if they're removed, what is the improvement in the objective function?
+* remove that node
+* repeat until no other zone nodes can be removed (i think until constraints are still valid)
+
+#### Local-branching ILP-heuristic
+
+
+
+### Computational results
+
+#### Instances
+
+* 400 nodes in grid (760 edges)
+* cost at random in [1, 100]
+* score at random between [20, 100] and set to 0 with 20% prob. for $S_1$, 10% for $S_2$
+* 4 sets of 10 instances, with $S_1$ = 1 and $S_2 = 3$ o il triplo
+* d = 1
+* scores are 0 for all boundary nodes
+* k = 1 o 3
+* $\lambda_s = \ceil 0.05 \sum_{i \in V_s} w$
+
+#### Computational settings
+
+* **basic** → only CORECON cuts
+* **basic+** → also COVER and SCC cuts
+* **basic+CP** → also constructon and primal heuristic 
+* **basic+CPLB** → also local branching procedure (between construction and branch and cut)
