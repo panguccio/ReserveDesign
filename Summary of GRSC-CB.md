@@ -451,7 +451,7 @@ $$
 
 ### Heuristics
 
-* **construcrion heuristic** → to generate a solution for initializing the branch and cut
+* **construction heuristic** → to generate a solution for initializing the branch and cut
 * **primal heuristic** → incorporated in the branch and cut
 * **local-branching ILP-heuristic** → to improve the solution found
 
@@ -496,7 +496,39 @@ greedy local improvement procedure to remove unnecessary nodes from $S_z$
 
 #### Local-branching ILP-heuristic
 
+* start with basic ILP formulation and extend with additional local branching constraint which specifies the **r-neighborhood** wrt S (LOCBRA)
+  $$
+  \sum_{i\in S_z} z_i \geq |S_z| - r
+  $$
+  this ensures that at least $|S_z| - r$ of the core parcels of the initial solution, belong also to the new solution $S'$
 
+* use of the **cutpool**: collects all violated inequalities detected during the local branching phase
+
+  * these are used to initialize the final call of the branch and cut procedure
+  * and also to initialize each subsequent local search iteration
+
+* the formulation is solved through branch and cut + primal heuristic
+
+* impose a time limit for each local search iteration
+
+* solver is interrupted as soon as a feasible solution is found (first-improvement local search strategy)
+
+* if no improving solution is found in the time limit, then the size of the neighborhood is increased by $\Delta_r$
+
+* whenever new best solution is found, the size of the neighborhood is reset to $r$ 
+
+* the procedure is then repeated with the new improved solution $S'$ until either:
+
+  * max number of local search iteration is satisfied
+  * max neighborhood size is reached
+  * overall time limit for local branching phase is reached
+
+* in their implementation 
+
+  * $r = 5$, 
+  * time limit is $20$ seconds, 
+  * if no improved solution is found, $r$ is increased by $\Delta_r = 5$ until maximum neighborhood size of $20$
+  * if improved solution is found, $r$ is reset to $5$ 
 
 ### Computational results
 
