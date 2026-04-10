@@ -1,4 +1,5 @@
 import networkx as nx
+import numpy as np
 
 class GRSC_CB_Instance:
     """
