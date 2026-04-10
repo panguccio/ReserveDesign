@@ -1,11 +1,14 @@
 import gurobipy as gb
 import numpy as np
+import networkx as nx
 
 class GRSC_CB_Model:
+    
     def __init__(self, instance):
         
         self.instance = instance
         self.model = gb.Model("GRSC-CB")
+        self.model.Params.LazyConstraints = 1
         self.model.setParam('OutputFlag', 0)
         
         # VARIABLES
@@ -20,42 +23,140 @@ class GRSC_CB_Model:
         # CONSTRAINTS
 
         for s in instance.S_1:
-            self.model.addConstr(gb.quicksum(instance.w[(i, s)] * self.z[i] for i in instance.v_s(s)) >= instance.lambda_s[s] * self.u[s], name="S1-SQ")
+            self.model.addConstr(gb.quicksum(instance.w[(i, s)] * self.z[i] for i in instance.v_s(s)) >= instance.lambda_s[s] * self.u[s], name=f"S1-SQ-{s}")
 
         for s in instance.S_2:
-            self.model.addConstr(gb.quicksum(instance.w[(i, s)] * self.x[i] for i in instance.v_s(s)) >= instance.lambda_s[s] * self.u[s], name="S2-SQ")
+            self.model.addConstr(gb.quicksum(instance.w[(i, s)] * self.x[i] for i in instance.v_s(s)) >= instance.lambda_s[s] * self.u[s], name=f"S2-SQ-{s}")
 
         self.model.addConstr(gb.quicksum(self.u[s] for s in instance.S_1) >= instance.P_1, name="S1-PROTECT")
 
         self.model.addConstr(gb.quicksum(self.u[s] for s in instance.S_2) >= instance.P_2, name="S2-PROTECT")
 
         for i in instance.V:
-            self.model.addConstr(self.z[i] <= self.x[i], name=f"LINK")   
+            self.model.addConstr(self.z[i] <= self.x[i], name=f"LINK-{i}")   
 
         for i in instance.V:
             for j in instance.delta_d(i):
-                self.model.addConstr(self.z[i] <= self.x[j], name=f"d-BUFF.1")
+                self.model.addConstr(self.z[i] <= self.x[j], name=f"d-BUFF.1-{i}-{j}")
 
         for i in instance.V:  
-            self.model.addConstr(self.x[i] <= gb.quicksum(self.z[j] for j in instance.delta_d(i)), name=f"d-BUFF.2")
+            self.model.addConstr(self.x[i] <= gb.quicksum(self.z[j] for j in instance.delta_d(i)), name=f"d-BUFF.2-{i}")
 
         self.model.addConstr(gb.quicksum(self.y[j] for j in instance.V) <= instance.k, name=f"NCOMP")
 
         for i in instance.V:
-            self.model.addConstr(self.y[i] <= self.z[i], name=f"YZ")
-            
-    def solve(self, callback=None):
-        if callback is not None:
-            self.model.optimize(callback)
-        else:
-            self.model.optimize()
+            self.model.addConstr(self.y[i] <= self.z[i], name=f"YZ-{i}")
         
+    def separate_CORECON_fractional(self, z_val, y_val, tau=0.5):
+        
+        # build flow network
+        self.DG = nx.DiGraph()
+        INF = 1e9
+        
+        self.DG.add_node('root')
+        for i in self.instance.V:
+            self.DG.add_edge((i, 'in'), (i, 'out'), capacity=max(0, z_val[i]))
+            self.DG.add_edge('root', (i, 'in'), capacity=max(0, y_val[i]))
+            
+        for (u, v) in self.instance.E:
+            self.DG.add_edge((u, 'out'), (v, 'in'), capacity=INF)
+            self.DG.add_edge((v, 'out'), (u, 'in'), capacity=INF)
+            
+        # separation of fractional solutions
+        cuts = []
+        
+        for l in self.instance.V:
+            if z_val[l] < tau:
+                continue 
+            
+            try:
+                cut_val, (root_side, l_side) = nx.minimum_cut(
+                    self.DG, 'root', (l, 'out'), capacity='capacity')
+            except Exception:
+                continue
+            
+            if cut_val >= z_val[l] - 1e-6:
+                continue
+            
+            WV = [] # nodes separated by the cut
+            WA = [] # arcs with capacity y that are in the cut
+            
+            for i in self.instance.V:
+                i_in = (i, 'in')
+                i_out = (i, 'out')
+                
+                if i_in in root_side and i_out in l_side:
+                    if i <= l: # down-lifting, preventing symmetrical solutions
+                        WV.append(i)
+                
+                if i_in not in root_side:
+                    if i <= l: # down-lifting
+                        WA.append(i)
+                        
+            if WV or WA:
+                cuts.append((WV, WA, l))
+                
+        return cuts 
+    
+    def separate_CORECON_integer(self, z_val, y_val):
+        G = self.instance.G
+        
+        cuts = []
+        
+        core_nodes = [i for i in self.instance.V if z_val[i] > 0.5]
+        if not core_nodes:
+            return cuts
+        
+        core_subgraph = G.subgraph(core_nodes)
+        
+        for component in nx.connected_components(core_subgraph):
+            if any(y_val[i] > 0.5 for i in component): # if at least one node is connected to the root
+                continue
+            
+            WA = list(component)
+            WV = list({j for i in component for j in G.neighbors(i) if j not in component})
+            
+            l = min(component) # down-lifting
+            cuts.append((WV, WA, l))
+        
+        return cuts      
+     
+    def solve(self, basic=False):
+        if not basic:
+            self.model.optimize()
+            return
+        
+        def callback(model, where):
+            
+            # integer solution
+            if where == gb.GRB.Callback.MIPSOL:
+                z_val = {i: self.model.cbGetSolution(self.z[i]) for i in self.instance.V}
+                y_val = {i: self.model.cbGetSolution(self.y[i]) for i in self.instance.V}
+                
+                # separation of CORECON constraints
+                for WV, WA, l in self.separate_CORECON_integer(z_val, y_val):
+                    self.model.cbLazy(gb.quicksum(self.z[i] for i in WV) + gb.quicksum(self.y[i] for i in WA) >= self.z[l])          
+                    
+            # fractional solution (LP relaxation)
+            if where == gb.GRB.Callback.MIPNODE:
+                if self.model.cbGet(gb.GRB.Callback.MIPNODE_STATUS) != gb.GRB.OPTIMAL:
+                    return
+                
+                z_val = {i: self.model.cbGetNodeRel(self.z[i]) for i in self.instance.V}
+                y_val = {i: self.model.cbGetNodeRel(self.y[i]) for i in self.instance.V}
+                
+                # separation of CORECON constraints
+                for WV, WA, l in self.separate_CORECON_fractional(z_val, y_val):
+                    self.model.cbLazy(gb.quicksum(self.z[i] for i in WV) + gb.quicksum(self.y[i] for i in WA) >= self.z[l])    
+        
+        self.model.optimize(callback)
+    
     def print_graph(self):
         self.instance.draw_graph(self.x, self.z, self.u)
         
     def print_solution(self):
         print("Status:", self.model.Status)
-        print("Objective:", self.model.ObjVal)
+        # print("Objective:", self.model.ObjVal)
         print("Nodes in the reserve (x):", [i for i in self.instance.V if self.x[i].X > 0.5])
         print("Nodes in the core (z):", [i for i in self.instance.V if self.z[i].X > 0.5])
         print("Species protected (u):", [s for s in self.instance.S if self.u[s].X > 0.5])
