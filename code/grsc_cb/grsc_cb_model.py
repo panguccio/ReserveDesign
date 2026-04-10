@@ -2,6 +2,9 @@ import gurobipy as gb
 import numpy as np
 import networkx as nx
 
+INF = 1e9
+EPS = 1e-6
+
 class GRSC_CB_Model:
     
     def __init__(self, instance, B=False, C=False):
@@ -44,28 +47,19 @@ class GRSC_CB_Model:
             for i in instance.V:  
                 self.model.addConstr(self.x[i] <= gb.quicksum(self.z[j] for j in instance.delta_d(i)), name=f"d-BUFF.2-{i}")
             
-        if C:
+        if C and B:
             
             self.model.addConstr(gb.quicksum(self.y[j] for j in instance.V) <= instance.k, name=f"NCOMP")
 
             for i in instance.V:
                 self.model.addConstr(self.y[i] <= self.z[i], name=f"YZ-{i}")
+                
+        
         
     def separate_CORECON_fractional(self, z_val, y_val, tau=0.5):
         
         # build flow network
-        self.DG = nx.DiGraph()
-        INF = 1e9
-        
-        self.DG.add_node('root')
-        
-        for i in self.instance.V:
-            self.DG.add_edge((i, 'in'), (i, 'out'), capacity=max(0, z_val[i]))
-            self.DG.add_edge('root', (i, 'in'), capacity=max(0, y_val[i]))
-            
-        for (u, v) in self.instance.E:
-            self.DG.add_edge((u, 'out'), (v, 'in'), capacity=INF)
-            self.DG.add_edge((v, 'out'), (u, 'in'), capacity=INF)
+        DG = self.build_flow_network(z_val, y_val)
             
         # separation of fractional solutions
         cuts = []
@@ -76,11 +70,11 @@ class GRSC_CB_Model:
             
             try:
                 cut_val, (root_side, l_side) = nx.minimum_cut(
-                    self.DG, 'root', (l, 'out'), capacity='capacity')
+                    DG, 'root', (l, 'out'), capacity='capacity')
             except Exception:
                 continue
             
-            if cut_val >= z_val[l] - 1e-6:
+            if cut_val >= z_val[l] - EPS:
                 continue
             
             WV = [] # nodes separated by the cut
@@ -144,7 +138,7 @@ class GRSC_CB_Model:
                 continue
             
             # sorts nodes in non decreasing way by z/w (S_1) or x/w (S_2)
-            sorted_Vs = sorted(Vs, key = lambda i: var_val[i] / (self.instance.w[(i, s)] + 1e-6), reverse=True)
+            sorted_Vs = sorted(Vs, key = lambda i: var_val[i] / (self.instance.w[(i, s)] + EPS), reverse=True)
             
             Cs = []
             partial_sum = 0
@@ -157,7 +151,7 @@ class GRSC_CB_Model:
             if not Cs:
                 continue
             
-            if sum(var_val[i] for i in Cs) < u_val[s] - 1e-6:
+            if sum(var_val[i] for i in Cs) < u_val[s] - EPS:
                 cuts.append((Cs, s))
         
         return cuts
@@ -171,22 +165,7 @@ class GRSC_CB_Model:
             if s in self.instance.S_2:
                 continue
         
-            DG = nx.DiGraph()
-            INF = 1e9
-            
-            DG.add_node('root')
-            DG.add_node('sink')
-            
-            for i in self.instance.V:
-                DG.add_edge((i, 'in'), (i, 'out'), capacity=max(0, z_val[i]))
-                DG.add_edge('root', (i, 'in'), capacity=max(0, y_val[i]))
-                
-            for (u, v) in self.instance.E:
-                DG.add_edge((u, 'out'), (v, 'in'), capacity=INF)
-                DG.add_edge((v, 'out'), (u, 'in'), capacity=INF)
-            
-            for i in Cs:
-                DG.add_edge((i, 'out'), 'sink', capacity=INF)
+            DG = self.build_flow_network(z_val, y_val, add_sink=True, Cs=Cs)
             
             try:
                 cut_val, (root_side, sink_side) = nx.minimum_cut(
@@ -194,7 +173,7 @@ class GRSC_CB_Model:
             except Exception:
                 continue
             
-            if cut_val >= u_val[s] - 1e-6:
+            if cut_val >= u_val[s] - EPS:
                 continue
             
             WV = [] # nodes separated by the cut
@@ -214,9 +193,29 @@ class GRSC_CB_Model:
                 cuts.append((WV, WA, s))
             
         return cuts
-        
+    
+    def build_flow_network(self, z_val, y_val, add_sink = False, Cs = None):    
+        DG = nx.DiGraph()
             
-    def solve(self, basic=False):
+        DG.add_node('root')
+        if add_sink:
+            DG.add_node('sink')
+        
+        for i in self.instance.V:
+            DG.add_edge((i, 'in'), (i, 'out'), capacity=max(0, z_val[i]))
+            DG.add_edge('root', (i, 'in'), capacity=max(0, y_val[i]))
+            
+        for (u, v) in self.instance.E:
+            DG.add_edge((u, 'out'), (v, 'in'), capacity=INF)
+            DG.add_edge((v, 'out'), (u, 'in'), capacity=INF)
+        
+        if add_sink:
+            for i in Cs:
+                DG.add_edge((i, 'out'), 'sink', capacity=INF)
+            
+        return DG
+            
+    def solve(self, basic=False, verbose=False):
         
         if not basic:
             self.model.optimize()
@@ -226,22 +225,24 @@ class GRSC_CB_Model:
             
             # integer solution
             if where == gb.GRB.Callback.MIPSOL:
-                z_val = {i: self.model.cbGetSolution(self.z[i]) for i in self.instance.V}
-                y_val = {i: self.model.cbGetSolution(self.y[i]) for i in self.instance.V}
+                z_val = {i: model.cbGetSolution(self.z[i]) for i in self.instance.V}
+                y_val = {i: model.cbGetSolution(self.y[i]) for i in self.instance.V}
                 
                 # separation of CORECON constraints
                 for (WV, WA, l) in self.separate_CORECON_integer(z_val, y_val):
-                    self.model.cbLazy(gb.quicksum(self.z[i] for i in WV) + gb.quicksum(self.y[i] for i in WA) >= self.z[l])          
+                    model.cbLazy(gb.quicksum(self.z[i] for i in WV) + gb.quicksum(self.y[i] for i in WA) >= self.z[l])     
+                    if verbose:
+                        print(f"Add constraint CORECON (integer): sum(z[i] for i in {WV}) + sum(y[i] for i in {WA}) >= z[{l}]") 
                     
             # fractional solution (LP relaxation)
             if where == gb.GRB.Callback.MIPNODE:
                 if self.model.cbGet(gb.GRB.Callback.MIPNODE_STATUS) != gb.GRB.OPTIMAL:
                     return
                 
-                z_val = {i: self.model.cbGetNodeRel(self.z[i]) for i in self.instance.V}
-                x_val = {i: self.model.cbGetNodeRel(self.x[i]) for i in self.instance.V}
-                y_val = {i: self.model.cbGetNodeRel(self.y[i]) for i in self.instance.V}
-                u_val = {s: self.model.cbGetNodeRel(self.u[s]) for s in self.instance.S}
+                z_val = {i: model.cbGetNodeRel(self.z[i]) for i in self.instance.V}
+                x_val = {i: model.cbGetNodeRel(self.x[i]) for i in self.instance.V}
+                y_val = {i: model.cbGetNodeRel(self.y[i]) for i in self.instance.V}
+                u_val = {s: model.cbGetNodeRel(self.u[s]) for s in self.instance.S}
                 
                 violated_inequality_found = False
                 
@@ -249,20 +250,28 @@ class GRSC_CB_Model:
                 cover_cuts = self.separate_COVER(z_val, x_val, u_val)
                 for (Cs, s) in cover_cuts:
                     if s in self.instance.S_1:
-                        self.model.cbLazy(gb.quicksum(self.z[i] for i in Cs) >= self.u[s])
+                        model.cbLazy(gb.quicksum(self.z[i] for i in Cs) >= self.u[s])
+                        if verbose:
+                            print(f"Add constraint COVER (S1): sum(z[i] for i in {Cs}) >= u[{s}]")
                     else:
-                        self.model.cbLazy(gb.quicksum(self.x[i] for i in Cs) >= self.u[s])
+                        model.cbLazy(gb.quicksum(self.x[i] for i in Cs) >= self.u[s])
+                        if verbose:
+                            print(f"Add constraint COVER (S2): sum(x[i] for i in {Cs}) >= u[{s}]")
                     violated_inequality_found = True
                 
                 # separation of SCC constraints
                 for (WV, WA, s) in self.separate_SCC(z_val, y_val, u_val, cover_cuts):
-                    self.model.cbLazy(gb.quicksum(self.z[i] for i in WV) + gb.quicksum(self.y[i] for i in WA) >= self.u[s])    
+                    model.cbLazy(gb.quicksum(self.z[i] for i in WV) + gb.quicksum(self.y[i] for i in WA) >= self.u[s])    
+                    if verbose:
+                        print(f"Add constraint SCC: sum(z[i] for i in {WV}) + sum(y[i] for i in {WA}) >= u[{s}]")
                     violated_inequality_found = True
                 
                 # separation of CORECON constraints
                 if not violated_inequality_found:
                     for (WV, WA, l) in self.separate_CORECON_fractional(z_val, y_val):
-                        self.model.cbLazy(gb.quicksum(self.z[i] for i in WV) + gb.quicksum(self.y[i] for i in WA) >= self.z[l])    
+                        model.cbLazy(gb.quicksum(self.z[i] for i in WV) + gb.quicksum(self.y[i] for i in WA) >= self.z[l])    
+                        if verbose:
+                            print(f"Add constraint CORECON (fractional): sum(z[i] for i in {WV}) + sum(y[i] for i in {WA}) >= z[{l}]")   
         
         self.model.optimize(callback)
     
@@ -272,6 +281,7 @@ class GRSC_CB_Model:
     def print_solution(self):
         print("Status:", self.model.Status)
         print("Objective:", self.model.ObjVal)
-        print("Nodes in the reserve (x):", [i for i in self.instance.V if self.x[i].X > 0.5])
-        print("Nodes in the core (z):", [i for i in self.instance.V if self.z[i].X > 0.5])
-        print("Species protected (u):", [s for s in self.instance.S if self.u[s].X > 0.5])
+        if self.model.Status == gb.GRB.OPTIMAL:
+            print("Nodes in the reserve (x):", [i for i in self.instance.V if self.x[i].X > 0.5])
+            print("Nodes in the core (z):", [i for i in self.instance.V if self.z[i].X > 0.5])
+            print("Species protected (u):", [s for s in self.instance.S if self.u[s].X > 0.5])
