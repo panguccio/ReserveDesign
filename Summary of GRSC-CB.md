@@ -59,7 +59,7 @@ $$
   * shape
   * presence of core or buffer areas
 
-## The complete problem: GSRC-CB
+## The complete problem: GRSC-CB
 
 * Generalized Reserve Set Covering Problem with Connectivity and Buffer Requirements
 
@@ -69,7 +69,7 @@ $$
   * buffer area
   * minimum quotas of ecological suitability
 
-* it's introducted in a modular way:
+* it's introduced in a modular way:
 
   * **GRSC**
 
@@ -114,7 +114,7 @@ $$
 
 $$
 \begin{align*}
-& GSRC : \min \{\gamma(u,x,z) | \\ & (S1-SQ), (S2-SQ), (S1-PROTECT), (S2-PROTECT), (LINK)\}
+& GRSC : \min \{\gamma(u,x,z) | \\ & (S1\text{-}SQ), (S2\text{-}SQ), (S1\text{-}PROTECT), (S2\text{-}PROTECT), (LINK)\}
 \end{align*}
 $$
 
@@ -138,7 +138,7 @@ $$
 
   $$
   \begin{align*}
-  u_i =
+  u_s =
   \begin{cases}
   1, & \text{if the specie $s \in S$ is protected by the reserve}\\
   0, & \text{otherwise}
@@ -181,7 +181,7 @@ $$
 
 At least $P_2$ species of $S_2$ must be protected. 
 $$
-\sum_{s\in S_2} u_2 \geq P_2
+\sum_{s\in S_2} u_s \geq P_2
 $$
 
 
@@ -204,11 +204,11 @@ $$
 \gamma(u,x,z) = \sum_{i\in V} c_i x_i
 $$
 
-### GSRC-B model
+### GRSC-B model
 
 $$
 \begin{align*}
-& GSRC-B : \min \{\gamma(u,x,z) | \\ & (S1-SQ), (S2-SQ), (S1-PROTECT), (S2-PROTECT), (LINK)\\& (d-BUFF.1), (d-BUFF.2) \}
+& GRSC\text{-}B : \min \{\gamma(u,x,z) | \\ & (S1\text{-}SQ), (S2\text{-}SQ), (S1\text{-}PROTECT), (S2\text{-}PROTECT), (LINK)\\& (d\text{-}BUFF.1), (d\text{-}BUFF.2) \}
 \end{align*}
 $$
 
@@ -246,7 +246,7 @@ $$
 x_i \leq \sum_{j \in \delta_d(i)} z_j \quad \forall i \in V
 $$
 
-### GSRC-C model
+### GRSC-C model
 
 For more info about this:
 
@@ -259,7 +259,7 @@ For more info about this:
 
 $$
 \begin{align*}
-& GSRC-C : \min \{\gamma(u,x,z) | \\ & (S1-SQ), (S2-SQ), (S1-PROTECT), (S2-PROTECT), (LINK) \\ &  (ALLCON), (YX), (NCOMP) \}
+& GRSC\text{-}C : \min \{\gamma(u,x,z) | \\ & (S1\text{-}SQ), (S2\text{-}SQ), (S1\text{-}PROTECT), (S2\text{-}PROTECT), (LINK) \\ &  (ALLCON), (YX), (NCOMP) \}
 \end{align*}
 $$
 
@@ -267,7 +267,7 @@ $$
 
 ##### r-arc-node-separator
 
-* A root $r$ is added to the graph: we can consider $G_r=(V_r. E_r)$ where $V_r= V \cup \{r\}$ and $E_r = E \cup \{(r,i)|i\in V\}$ (so all the nodes from the original graph are connected to $r$)
+* A root $r$ is added to the graph: we can consider $G_r=(V_r, E_r)$ where $V_r= V \cup \{r\}$ and $E_r = E \cup \{(r,i)|i\in V\}$ (so all the nodes from the original graph are connected to $r$)
 * The arcs that connect the nodes to the root $r$ are called **$r$-arcs** and the set of $r$-arcs is called $A_r$
 * Given $l \in V$, an **$r$-arc-node-separator** is a tuple $W=(W_V, W_A)$, where $W_V \subseteq V$ and $W_A \subseteq A_r$, such that  if $W$ is removed from $G_r$ then the site $l$ can't be reached by $r$
 * $W_l$ is the set of all possible $r$-arc-node-separators w.r.t $l$
@@ -275,7 +275,7 @@ $$
 
 #### Variables
 
-* Let $y_i, 1 \leq i \leq |V|$ be an auxilary variable 
+* Let $y_i, 1 \leq i \leq |V|$ be an auxiliary variable 
   $$
   \begin{align*}
   y_i =
@@ -313,7 +313,7 @@ $$
 
 ##### ALLCON
 
-If the buffer areas are not considered, this constrain replaces (CORECON).
+If the buffer areas are not considered, this constraint replaces (CORECON).
 $$
 \sum_{i \in W_V} x_i + \sum_{j \in W_A} y_j \geq x_l, \quad \forall W \in W_l, \quad \forall l \in V
 $$
@@ -329,7 +329,7 @@ $$
 
 $$
 \begin{align*}
-& GSRC-C : \min \{\gamma(u,x,z) | \\ & (S1-SQ), (S2-SQ), (S1-PROTECT), (S2-PROTECT), (LINK) \\ & (d-BUFF.1), (d-BUFF.2) \\ &  (CORECON), (YZ), (NCOMP) \\ & (u, x, z, y) \in \{0,1\}^{|S|+3|V|} \}
+& GRSC\text{-}CB : \min \{\gamma(u,x,z) | \\ & (S1\text{-}SQ), (S2\text{-}SQ), (S1\text{-}PROTECT), (S2\text{-}PROTECT), (LINK) \\ & (d\text{-}BUFF.1), (d\text{-}BUFF.2) \\ &  (CORECON), (YZ), (NCOMP) \\ & (u, x, z, y) \in \{0,1\}^{|S|+3|V|} \}
 \end{align*}
 $$
 
@@ -360,7 +360,7 @@ $$
 
 * let $W_s = \sum_{i\in V}w_i^s$
 * **cover** = a set $C_s \subset V_s$ such that $\sum_{i \in C_s} w_i^s \geq W_s - \lambda_s$ 
-* such that $V_s / C_s$ is not enough to satisfy the sustainability quota for that specie
+* such that $V_s \setminus C_s$ is not enough to satisfy the sustainability quota for that specie
 
 $$
 \sum_{i\in C_s} z_i \geq u_s, \text{if } s \in S_1
@@ -380,49 +380,68 @@ $$
 
 ### Constraint separation
 
-* $\rho = (\tilde{u},\tilde{x},\tilde{x}, \tilde{y})$ is a solution of the LP relaxation at the current node of the branch-and-bound tree
+* $\rho = (\tilde{u},\tilde{x},\tilde{z}, \tilde{y})$ is a solution of the LP relaxation at the current node of the branch-and-bound tree
 
 #### Separation of CORECON
 
-##### Fractionary solution
+##### Fractionary solution — Digraph Construction
 
-* we transform the graph in to a digraph: the nodes of the graphs are separated in to $i_1$ and $i_2$ with capacities defined as:
-  $$
-  \begin{align*}
-  \text{cap}_{tv} = \cases{\tilde{z_i} & \text{if $t=i$, $v=i_2$, $i\in V$,}\\\tilde{y_i} & \text{if $t=r$, $v=i_1$, $i\in V$,} \\ \infty & \text{otherwise}}
-  \end{align*}
-  $$
+To find a violated CORECON cut from a fractional LP solution, the undirected graph $G$ is transformed into a directed graph (digraph) via **node splitting**:
 
-* then a violeted connectivity cut is $(\overline{W}_V, \overline{W}_A)$  such that:
-  $$
-  \begin{align*}
-  &\overline{W}_V = \{i | (i_1, i_2) \in A_z\}\\
-  &\overline{W}_A = \{(r,i)|(r, i_1) \in A_r'\}\\
-  &\sum_{i\in \overline{W}_V} \overline{z}_i + \sum_{i \in \overline{W}_A} \overline{y}_j < \overline{z}_l
-  \end{align*}
-  $$
+* Each node $i \in V$ is split into two copies:
+  * $i_1$ (entry copy)
+  * $i_2$ (exit copy)
+
+* The arcs of the digraph and their capacities are defined as follows:
+
+$$
+\text{cap}(t, v) =
+\begin{cases}
+\tilde{z}_i & \text{if } t = i_1,\ v = i_2,\ i \in V \quad \text{(internal node arc)}\\
+\tilde{y}_i & \text{if } t = r,\ v = i_1,\ i \in V \quad \text{(root arc)}\\
+\infty & \text{if } t = i_2,\ v = j_1 \text{ for } \{i,j\} \in E \quad \text{(original graph edges, both directions)}
+\end{cases}
+$$
+
+> [!NOTE]
+>
+> Each undirected edge $\{i,j\} \in E$ generates **two** directed arcs: $(i_2, j_1)$ and $(j_2, i_1)$, both with capacity $\infty$. This forces all flow to pass through the internal node arcs (with capacity $\tilde{z}_i$), which implements **node separation** via max-flow: the minimum $r$-$l$ node-cut has value equal to the max-flow from $r$ to $l_2$ in this digraph.
+
+* A violated connectivity cut $(\overline{W}_V, \overline{W}_A)$ is then identified as the min-cut of the above digraph from $r$ to $l_2$:
+
+$$
+\begin{align*}
+&\overline{W}_V = \{i \mid (i_1, i_2) \in \text{cut arcs}\}\\
+&\overline{W}_A = \{(r,i) \mid (r, i_1) \in \text{cut arcs}\}\\
+&\sum_{i\in \overline{W}_V} \tilde{z}_i + \sum_{j \in \overline{W}_A} \tilde{y}_j < \tilde{z}_l
+\end{align*}
+$$
+
+If such a cut exists, the corresponding CORECON inequality is violated and can be added to the LP.
 
 ##### Integer solution
 
-* $H$ connected components induced by $\overline{z}_i = 1$ 
+* $H$ = connected component of the core induced by $\tilde{z}_i = 1$ that does **not** contain any root arc (i.e., $\tilde{y}_i = 0$ for all $i \in H$) → the component is disconnected from $r$
 
-* if for all, $\overline{y}_i=0$, the component is not connected
-
-* the connectivity cut can then be defined as $(W_A, W_V)$ such that:
+* the connectivity cut is defined as $(W_V, W_A)$ such that:
   $$
   \begin{align*}
   &W_A = H \\
-  &W_V = \{j | {i,j} \in E : i \in H, j \notin H\}
+  &W_V = \{j \mid \{i,j\} \in E,\ i \in H,\ j \notin H\}
   \end{align*}
   $$
 
 > [!NOTE]
 >
-> in both cases, downlifting is used, by allowing only $j \leq l$ for $z_l$ on the left hand side.
+> **Down-lifting (symmetry breaking):** In both the fractional and integer case, the CORECON cut for node $l$ is strengthened via down-lifting. Specifically, the constraint:
+> $$
+> \sum_{i\in W_V} z_i + \sum_{j \in W_A} y_j \geq z_l
+> $$
+> is tightened by restricting the $y_j$ sum to only those root arcs with $j \leq l$ (imposing a numeric ordering on nodes). This prevents the solver from exploring symmetric solutions — i.e., the same reserve but with different root choices — and significantly reduces the branch-and-bound tree size.
 
 #### Separation of SCC
 
-the same as CORECON, but $\overline{C}$ is considered.
+The same max-flow digraph construction as CORECON is used, but applied to the cover set $C_s$ (connected to a sink node) instead of a single node $l$.
 
 #### Separation of COVER
 
@@ -430,24 +449,25 @@ the same as CORECON, but $\overline{C}$ is considered.
 
 $$
 \begin{align*}
-\min \{\sum_{j\in V_s} \tilde{z}_jq_j| \sum_{j\in V_s} w_j^sq_j \geq W_s - \lambda \text{ and } \bold{q} \in \{0, 1\}^{|V_s|} \}
+\min \left\{\sum_{j\in V_s} \tilde{z}_j q_j \;\middle|\; \sum_{j\in V_s} w_j^s q_j \geq W_s - \lambda_s,\ \mathbf{q} \in \{0, 1\}^{|V_s|} \right\}
 \end{align*}
 $$
 
-* but this problem is not solved exactly, a heuristic is followed
-  * sord the nodes in a non-decreasing way by $\tilde{z}_j /w_j^s$
-  * construct a cover by iteratively picking the nodes sorted in this way, starting with smallest ration, until: $\sum_{j\in C_s} w_j^s \geq W_s - \lambda_s$
+* but this problem is not solved exactly; a heuristic is followed:
+  * sort the nodes in non-decreasing order by $\tilde{z}_j / w_j^s$
+  * construct a cover by iteratively picking nodes in that order (smallest ratio first), until: $\sum_{j\in C_s} w_j^s \geq W_s - \lambda_s$
 
 #### Implementation of the cut-loop
 
-1. separate COVER and SCC/SC
-2. separate CORECON
-   * done only for nodes with $\tilde z_l \geq \tau$ where $\tau = 0.5$ or $0.1$
-   * once a violated ineq. is found, the nodes $\{i|(r,i) \in W_A \}$ are not considered for separation
+1. Separate COVER and SCC/SC
+   * At the root node, add **at most 20** cuts of type COVER/SCC per iteration to avoid overloading the LP
+2. Separate CORECON
+   * Done **only** for nodes $l$ where $\tilde{z}_l \geq \tau$, with $\tau = 0.5$ (or $0.1$ for a looser threshold)
+   * Once a violated inequality is found for node $l$, the nodes $\{i \mid (r,i) \in W_A\}$ are excluded from further separation in the same iteration
 
 > [!NOTE]
 >
-> for integer solutions, only connectivity cuts (CORECON) are separated
+> For **integer solutions**, only connectivity cuts (CORECON) are separated; COVER and SCC are only added at fractional nodes.
 
 ### Heuristics
 
@@ -455,97 +475,122 @@ $$
 * **primal heuristic** → incorporated in the branch and cut
 * **local-branching ILP-heuristic** → to improve the solution found
 
+> [!NOTE]
+>
+> In Gurobi and CPLEX, the construction and primal heuristics must be passed as **callbacks** (e.g., `cbSolution` in Gurobi), not as standalone functions. The solver calls them at appropriate nodes of the branch-and-bound tree.
+
 #### Construction and Primal heuristic
+
+##### Node-cost function $\eta_i(S)$
+
+The greedy choice at each step is guided by the **node-cost function**, which balances the incremental cost of adding node $i$ against the suitability gain it brings. It is composed of two terms:
+
+**Incremental cost $C_i(S)$:**
+$$
+C_i(S) = c_i + \sum_{j \in \delta_d^+(i),\ j \notin S_x} c_j
+$$
+This is the cost of adding $i$ to the core, plus the cost of all buffer nodes in its $d$-neighborhood that are **not yet** in the reserve $S_x$. In the **primal heuristic**, $c_i$ is replaced by $c_i(1 - \tilde{x}_i)$ to account for nodes already (partially) selected in the LP solution.
+
+**Suitability gain $W^s(i, S)$:**
+$$
+W^s(i, S) = \sum_{j \in \delta_d^+(i)} w(j, s)
+$$
+This measures how much node $i$ (and its buffer $\delta_d^+(i)$) contributes toward reaching the quota $\lambda_s$ for species $s \in S_1$ not yet protected (i.e., with $u_s = 0$).
+
+**Full node-cost function:**
+$$
+\eta_i(S) = C_i(S) + 0.001 \cdot (\ldots) + 0.0001
+$$
+where the $0.001$ and $0.0001$ terms are small tie-breaking penalties. Refer to the article (Section 3.3) for the precise weights. Without this exact weighting, the greedy heuristic will not produce high-quality solutions.
 
 ##### Construction heuristic - Phase 1
 
-creates a feasible solution in  a greedy fashion:
+Creates a feasible solution in a greedy fashion:
 
-* $k$ nodes are chosen at random
-* $S_x$ is build by considering the buffer for each core node
-* while the (PROTECT) constraints are **not** valid, do:
-  * compute the distances (node weighted) between the nodes in the core and T(S)*****
-  * considers the node $i^*$ with min distance among T(S)
-  * considers the nodes on the shortest path between the core nodes and this $i^*$
-  * adds all these nodes to the core and adds also the buffer for each
-  * updates T(S)
+* $k$ nodes are chosen at random as initial root nodes (one per component)
+* $S_x$ is built by considering the buffer for each core node
+* while the (PROTECT) constraints are **not** satisfied, do:
+  * compute the distances (node weighted, using $\eta_i(S)$) between the nodes in the core and $T(S)$
+  * consider the node $i^*$ with minimum distance among $T(S)$
+  * consider the nodes on the shortest path between the core nodes and $i^*$
+  * add all these nodes to the core and add also the buffer for each
+  * update $T(S)$
 
 > [!NOTE]
 >
-> **[*]** T(S) = set dynamically updated of the nodes that are deemed as "helpful" if added to $S_z$,
+> **$T(S)$** = dynamically updated set of nodes deemed "helpful" if added to $S_z$:
 >
-> * "helpful" = if 
->   * $protectedS_1$ is false (less than $P_1$ species protected) 
->   * and the node $\in V_s$ for at least one specie with $u_s = 0$ ⇒ that's still not protected by the reserve (meaning, its suitability quota is not fulfilled with the current solution)
->   * helpfulness is measured by the **node-cost** function $\Delta_i(S)$ (see article)
+> * "helpful" = if $protectedS_1$ is false (fewer than $P_1$ species protected)
+>   and the node $\in V_s$ for at least one species with $u_s = 0$ (still unprotected)
+> * helpfulness is measured by the **node-cost** function $\eta_i(S)$ described above
 
 ##### Primal heuristic - Phase 1
 
-* used during the branch-and-cut
-* it's basically the same as the construction heuristic, but with 2 differences:
-  * in the **node-cost** function a value changes: $c_i(1-\tilde x_i)$ instead of $c_i$
-  * the randomly generated starting solutions are constructed considering nodes with: $\tilde y_i \geq 0.001$
+* Used during the branch-and-cut (passed as a callback)
+* Essentially the same as the construction heuristic, with 2 differences:
+  * In the **node-cost** function: $c_i$ is replaced by $c_i(1 - \tilde{x}_i)$
+  * The randomly generated starting solutions use nodes with $\tilde{y}_i \geq 0.001$ as seeds
 
 ##### Post processing - Phase 2
 
-greedy local improvement procedure to remove unnecessary nodes from $S_z$
+Greedy local improvement procedure to remove unnecessary nodes from $S_z$:
 
-* check for every node in the core (and the consequent buffer nodes) if they're removed, what is the improvement in the objective function?
-* remove that node
-* repeat until no other zone nodes can be removed (i think until constraints are still valid)
+* For every node in the core (and its consequent buffer nodes): check whether removing it improves the objective function
+* Remove the best such node
+* Repeat until no further core nodes can be removed while keeping all constraints valid
 
 #### Local-branching ILP-heuristic
 
-* start with basic ILP formulation and extend with additional local branching constraint which specifies the **r-neighborhood** wrt S (LOCBRA)
+* Start with the basic ILP formulation and extend with an additional local branching constraint specifying the **r-neighborhood** w.r.t. $S$ (LOCBRA):
   $$
   \sum_{i\in S_z} z_i \geq |S_z| - r
   $$
-  this ensures that at least $|S_z| - r$ of the core parcels of the initial solution, belong also to the new solution $S'$
+  This ensures that at least $|S_z| - r$ of the core parcels of the initial solution also belong to the new solution $S'$
 
-* use of the **cutpool**: collects all violated inequalities detected during the local branching phase
+* Use of the **cutpool**: collects all violated inequalities detected during the local branching phase
 
-  * these are used to initialize the final call of the branch and cut procedure
-  * and also to initialize each subsequent local search iteration
+  * These are used to initialize the final call of the branch and cut procedure
+  * And also to initialize each subsequent local search iteration
 
-* the formulation is solved through branch and cut + primal heuristic
+* The formulation is solved through branch and cut + primal heuristic
 
-* impose a time limit for each local search iteration
+* Impose a time limit for each local search iteration
 
-* solver is interrupted as soon as a feasible solution is found (first-improvement local search strategy)
+* Solver is interrupted as soon as a feasible solution is found (first-improvement local search strategy)
 
-* if no improving solution is found in the time limit, then the size of the neighborhood is increased by $\Delta_r$
+* If no improving solution is found within the time limit, the size of the neighborhood is increased by $\Delta_r$
 
-* whenever new best solution is found, the size of the neighborhood is reset to $r$ 
+* Whenever a new best solution is found, the size of the neighborhood is reset to $r$ 
 
-* the procedure is then repeated with the new improved solution $S'$ until either:
+* The procedure is repeated with the new improved solution $S'$ until either:
 
-  * max number of local search iteration is satisfied
+  * max number of local search iterations is reached
   * max neighborhood size is reached
-  * overall time limit for local branching phase is reached
+  * overall time limit for the local branching phase is reached
 
-* in their implementation 
+* Implementation parameters used in the article:
 
-  * $r = 5$, 
-  * time limit is $20$ seconds, 
-  * if no improved solution is found, $r$ is increased by $\Delta_r = 5$ until maximum neighborhood size of $20$
-  * if improved solution is found, $r$ is reset to $5$ 
+  * $r = 5$
+  * time limit = $20$ seconds per iteration
+  * if no improved solution is found, $r$ is increased by $\Delta_r = 5$ up to a maximum neighborhood size of $20$
+  * if an improved solution is found, $r$ is reset to $5$
 
 ### Computational results
 
 #### Instances
 
-* 400 nodes in grid (760 edges)
-* cost at random in [1, 100]
-* score at random between [20, 100] and set to 0 with 20% prob. for $S_1$, 10% for $S_2$
-* 4 sets of 10 instances, with $S_1$ = 1 and $S_2 = 3$ o il triplo
-* d = 1
-* scores are 0 for all boundary nodes
-* k = 1 o 3
-* $\lambda_s = \ceil 0.05 \sum_{i \in V_s} w$
+* Grid graph: $20 \times 20$ nodes (400 nodes, 760 edges)
+* Cost at random in $[1, 100]$
+* Score at random between $[20, 100]$ and set to $0$ with $20\%$ probability for $S_1$, $10\%$ for $S_2$
+* 4 sets of 10 instances, with $|S_1| = 1$ and $|S_2| = 3$ or triple
+* $d = 1$ (buffer width)
+* Scores are $0$ for all boundary nodes
+* $k = 1$ or $3$
+* $\lambda_s = \lceil 0.05 \sum_{i \in V_s} w(i,s) \rceil$ (5% of total suitability per species)
 
 #### Computational settings
 
 * **basic** → only CORECON cuts
 * **basic+** → also COVER and SCC cuts
-* **basic+CP** → also constructon and primal heuristic 
+* **basic+CP** → also construction and primal heuristic 
 * **basic+CPLB** → also local branching procedure (between construction and branch and cut)
