@@ -55,5 +55,42 @@ class PartialSolution:
                     
         return terminal_nodes
     
+    def node_cost_function(self, i):
+        Ci = sum(self.instance.c[j] for j in self.instance.delta_d_plus(i) - self.Sx)
+        
+        prot_S1 = int(self.protected_S1())
+        prot_S2 = int(self.protected_S2())
+        
+        sum_W1 = 0
+        for s in self.instance.S_1:
+            helpfulness1 = (self.instance.w[(i, s)] + self.W_s[s] - self.instance.lambda_s[s]) * (1 - int(self.us(s)))
+            sum_W1 += helpfulness1
+        sum_W2 = 0
+        for s in self.instance.S_2:
+            sum_w = sum(self.instance.w[(j, s)] for j in (self.instance.delta_d_plus(i) - self.Sx))
+            helpfulness2 = (sum_w + self.W_s[s] - self.instance.lambda_s[s]) * (1 - int(self.us(s)))
+            sum_W2 += helpfulness2
+            
+        return (Ci + 0.001) / ((sum_W1 * (1 - prot_S1)) + (sum_W2 * (1 - prot_S2)) + 0.0001)
+
+    def node_cost_function_primal(self, i, x, y):
+        
+        Ci = sum(self.instance.c[j](1 - x) for j in self.instance.delta_d_plus(i) - self.Sx)
+        
+        prot_S1 = int(self.protected_S1())
+        prot_S2 = int(self.protected_S2())
+        
+        sum_W1 = 0
+        for s in self.instance.S_1:
+            helpfulness1 = (self.instance.w[(i, s)] + self.W_s[s] - self.instance.lambda_s[s]) * (1 - int(self.us(s)))
+            sum_W1 += helpfulness1
+        sum_W2 = 0
+        for s in self.instance.S_2:
+            sum_w = sum(self.instance.w[(j, s)] for j in (self.instance.delta_d_plus(i) - self.Sx))
+            helpfulness2 = (sum_w + self.W_s[s] - self.instance.lambda_s[s]) * (1 - int(self.us(s)))
+            sum_W2 += helpfulness2
+            
+        return (Ci + 0.001) / ((sum_W1 * (1 - prot_S1)) + (sum_W2 * (1 - prot_S2)) + 0.0001)
+        
                 
         

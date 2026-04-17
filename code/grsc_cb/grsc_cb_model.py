@@ -224,11 +224,29 @@ class GRSC_CB_Model:
             
         return DG
     
-    def compute_shortest_paths(self, set1, set2):
+    def compute_shortest_path(self, set1, set2, weight_function):
         # Implementation for computing shortest paths between two sets of nodes
-        pass
+        
+        def edge_weight(u, v, data):
+            # we're computing the node weighted shortest path, so the weight of an edge can be approximated with the average of the weights of its endpoints
+            return (weight_function(u) + weight_function(v))/2
+        
+        distances, paths = nx.multi_source_dijkstra(self.instance.G, set1, weight=edge_weight)
+        
+        best_distance = INF
+        best_path = None
+        
+        for node in set2:
+            if node in distances and distances[node] < best_distance:
+                best_distance = distances[node]
+                best_path = paths[node]
+                
+        return best_path
 
     def construction_heuristic(self):
+        
+        # phase 1: create a frasible solution in a greedy fashion
+        
         instance = self.instance
         
         solution = PartialSolution(instance)
@@ -240,9 +258,38 @@ class GRSC_CB_Model:
             T = solution.terminal_nodes()
             if not T:
                 break
-            d = self.compute_shortest_paths(solution.Sz, T)
-             
-            
+            path = self.compute_shortest_path(set1=solution.Sz, set2=T, weight_function=solution.node_cost_function())
+            if not path:
+                break
+            for node in path:
+                solution.add_to_core([node])
+                
+        # phase 2: remove uncecessary land parcels in a post-processing phase
+        
+    def primal_heuristic(self, x_tilde, y_tilde):
+        
+        # phase 1: create a frasible solution in a greedy fashion
+        
+        instance = self.instance
+        
+        solution = PartialSolution(instance)
+        start_nodes = random.sample(instance.V, min(instance.k, len(instance.V)))
+        
+        solution.add_to_core(start_nodes)
+        
+        while not solution.feasible():
+            T = solution.terminal_nodes()
+            if not T:
+                break
+            path = self.compute_shortest_path(set1=solution.Sz, set2=T, weight_function=solution.node_cost_function)
+            if not path:
+                break
+            for node in path:
+                solution.add_to_core([node])
+                
+        # phase 2: remove uncecessary land parcels in a post-processing phase
+        
+                
     def solve(self, basic=False, verbose=False):
         
         if not basic:
