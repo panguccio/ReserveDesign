@@ -269,11 +269,11 @@ class GRSC_CB_Model:
     def primal_heuristic(self, x_tilde, y_tilde):
         
         # phase 1: create a frasible solution in a greedy fashion
-        
         instance = self.instance
         
         solution = PartialSolution(instance)
-        start_nodes = random.sample(instance.V, min(instance.k, len(instance.V)))
+        pool = [i for i in instance.V if y_tilde[i] >= 0.001]
+        start_nodes = random.sample(pool, min(instance.k, len(instance.V)))
         
         solution.add_to_core(start_nodes)
         
