@@ -258,7 +258,7 @@ class GRSC_CB_Model:
             T = solution.terminal_nodes()
             if not T:
                 break
-            path = self.compute_shortest_path(set1=solution.Sz, set2=T, weight_function=solution.node_cost_function())
+            path = self.compute_shortest_path(set1=solution.Sz, set2=T, weight_function=solution.node_cost_function(self.instance.c))
             if not path:
                 break
             for node in path:
@@ -281,7 +281,7 @@ class GRSC_CB_Model:
             T = solution.terminal_nodes()
             if not T:
                 break
-            path = self.compute_shortest_path(set1=solution.Sz, set2=T, weight_function=solution.node_cost_function)
+            path = self.compute_shortest_path(set1=solution.Sz, set2=T, weight_function=solution.node_cost_function({i: self.instance.c[i] * (1 - x_tilde[i]) for i in self.instance.V}))
             if not path:
                 break
             for node in path:
