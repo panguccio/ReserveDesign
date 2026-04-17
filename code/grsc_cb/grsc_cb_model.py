@@ -2,13 +2,21 @@ import gurobipy as gb
 import numpy as np
 import networkx as nx
 from grsc_cb_instance import GRSC_CB_Instance
+from grsc_cb_partial_solution import PartialSolution
+import random
 
 INF = 1e9
 EPS = 1e-6
 
 class GRSC_CB_Model:
+    """
+    Class that implements the mathematical model for the GRSC-CB problem and the separation algorithms for the cutting plane method.
     
-    def __init__(self, instance: GRSC_CB_Instance, B=False, C=False):
+    B -> use of buffer constraints
+    C -> use of connectivity constraints
+    CP -> use of construction and primal heuristics
+    """
+    def __init__(self, instance: GRSC_CB_Instance, B=False, C=False, CP=False):
         
         self.instance = instance
         self.model = gb.Model("GRSC-CB")
@@ -215,6 +223,25 @@ class GRSC_CB_Model:
                 DG.add_edge((i, 'out'), 'sink', capacity=INF)
             
         return DG
+    
+    def compute_shortest_paths(self, set1, set2):
+        # Implementation for computing shortest paths between two sets of nodes
+        pass
+
+    def construction_heuristic(self):
+        instance = self.instance
+        
+        solution = PartialSolution(instance)
+        start_nodes = random.sample(instance.V, min(instance.k, len(instance.V)))
+        
+        solution.add_to_core(start_nodes)
+        
+        while not solution.feasible():
+            T = solution.terminal_nodes()
+            if not T:
+                break
+            d = self.compute_shortest_paths(solution.Sz, T)
+             
             
     def solve(self, basic=False, verbose=False):
         

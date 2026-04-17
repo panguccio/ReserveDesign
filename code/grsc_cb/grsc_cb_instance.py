@@ -50,10 +50,10 @@ class GRSC_CB_Instance:
         self.G.add_edges_from(self.E)
         
     def v_s(self, s):
-        return [i for i in self.V if self.w[(i, s)] > 0]
+        return set(i for i in self.V if self.w[(i, s)] > 0)
     
     def delta_d_plus(self, i):
-        return list(nx.ego_graph(self.G, i, radius=self.d).nodes())
+        return set(nx.ego_graph(self.G, i, radius=self.d).nodes())
     
     def delta_d(self, i):
         neighborhood = self.delta_d_plus(i)
