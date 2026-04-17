@@ -1,13 +1,14 @@
 import gurobipy as gb
 import numpy as np
 import networkx as nx
+from grsc_cb_instance import GRSC_CB_Instance
 
 INF = 1e9
 EPS = 1e-6
 
 class GRSC_CB_Model:
     
-    def __init__(self, instance, B=False, C=False):
+    def __init__(self, instance: GRSC_CB_Instance, B=False, C=False):
         
         self.instance = instance
         self.model = gb.Model("GRSC-CB")
