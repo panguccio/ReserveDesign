@@ -16,7 +16,7 @@ class GRSC_CB_Model:
     C -> use of connectivity constraints
     CP -> use of construction and primal heuristics
     """
-    def __init__(self, instance: GRSC_CB_Instance, B=False, C=False, CP=False):
+    def __init__(self, instance: GRSC_CB_Instance, B=False, C=False):
         
         self.instance = instance
         self.model = gb.Model("GRSC-CB")
@@ -227,9 +227,13 @@ class GRSC_CB_Model:
     def compute_shortest_path(self, set1, set2, weight_function):
         # Implementation for computing shortest paths between two sets of nodes
         
+        # precompute node weights based on the provided weight function
+        # we need to have non negative weights for Dijkstra's algorithm, so we take max with 0
+        node_weights = {i: max(0, weight_function(i)) for i in self.instance.V}
         def edge_weight(u, v, data):
             # we're computing the node weighted shortest path, so the weight of an edge can be approximated with the average of the weights of its endpoints
-            return (weight_function(u) + weight_function(v))/2
+
+            return (node_weights[u] + node_weights[v])/2
         
         distances, paths = nx.multi_source_dijkstra(self.instance.G, set1, weight=edge_weight)
         
@@ -243,14 +247,12 @@ class GRSC_CB_Model:
                 
         return best_path
 
-    def construction_heuristic(self):
-        
-        # phase 1: create a frasible solution in a greedy fashion
-        
+    # used by both the construction and primal heuristic to find a good partial solution
+    def get_partial_solution(self, pool, cost):
         instance = self.instance
         
         solution = PartialSolution(instance)
-        start_nodes = random.sample(instance.V, min(instance.k, len(instance.V)))
+        start_nodes = random.sample(list(pool), min(instance.k, len(pool)))
         
         solution.add_to_core(start_nodes)
         
@@ -258,43 +260,70 @@ class GRSC_CB_Model:
             T = solution.terminal_nodes()
             if not T:
                 break
-            path = self.compute_shortest_path(set1=solution.Sz, set2=T, weight_function=solution.node_cost_function(self.instance.c))
+            path = self.compute_shortest_path(set1=solution.Sz, set2=T, weight_function=solution.node_cost_function(cost))
             if not path:
                 break
             for node in path:
                 solution.add_to_core([node])
                 
-        # phase 2: remove uncecessary land parcels in a post-processing phase
+        return solution 
+    
+    
+    def construction_heuristic(self, n_starts = 20):
         
+        best_objective = INF
+        best_solution = None
+        
+        for _ in range(n_starts):
+        # phase 1: create a frasible solution in a greedy fashion
+            solution = self.get_partial_solution(pool=self.instance.V, cost=self.instance.c)
+            
+        # phase 2: remove uncecessary land parcels in a post-processing phase
+            if solution.feasible():
+                solution.post_process()
+                objective = solution.objective()
+                if objective < best_objective:
+                    best_objective = objective
+                    best_solution = solution
+                    
+        return best_solution
+            
+    
     def primal_heuristic(self, x_tilde, y_tilde):
         
+        pool = [i for i in self.instance.V if y_tilde[i] >= 0.001]
+        cost = {i: self.instance.c[i] * (1 - x_tilde[i]) for i in self.instance.V}
+        
         # phase 1: create a frasible solution in a greedy fashion
-        instance = self.instance
+        solution = self.get_partial_solution(pool=pool, cost=cost)
         
-        solution = PartialSolution(instance)
-        pool = [i for i in instance.V if y_tilde[i] >= 0.001]
-        start_nodes = random.sample(pool, min(instance.k, len(instance.V)))
-        
-        solution.add_to_core(start_nodes)
-        
-        while not solution.feasible():
-            T = solution.terminal_nodes()
-            if not T:
-                break
-            path = self.compute_shortest_path(set1=solution.Sz, set2=T, weight_function=solution.node_cost_function({i: self.instance.c[i] * (1 - x_tilde[i]) for i in self.instance.V}))
-            if not path:
-                break
-            for node in path:
-                solution.add_to_core([node])
-                
         # phase 2: remove uncecessary land parcels in a post-processing phase
+        if solution.feasible():
+            solution.post_process()
         
+        return solution
                 
-    def solve(self, basic=False, verbose=False):
+    def inject_solution(self, solution: PartialSolution):
+        for i in self.instance.V:
+            self.x[i].Start = 1 if i in solution.Sx else 0
+            self.z[i].Start = 1 if i in solution.Sz else 0
+        
+        for s in self.instance.S:
+            if solution.us(s):
+                self.u[s].Start = 1
+            else:
+                self.u[s].Start = 0
+                
+    def solve(self, basic=False, cp_heuristic=False, verbose=False):
         
         if not basic:
             self.model.optimize()
             return
+        
+        if cp_heuristic:
+            initial_solution = self.construction_heuristic()
+            if initial_solution:
+                self.inject_solution(initial_solution)
         
         def callback(model, where):
             
@@ -346,7 +375,14 @@ class GRSC_CB_Model:
                     for (WV, WA, l) in self.separate_CORECON_fractional(z_val, y_val):
                         model.cbLazy(gb.quicksum(self.z[i] for i in WV) + gb.quicksum(self.y[i] for i in WA) >= self.z[l])    
                         if verbose:
-                            print(f"Add constraint CORECON (fractional): sum(z[i] for i in {WV}) + sum(y[i] for i in {WA}) >= z[{l}]")   
+                            print(f"Add constraint CORECON (fractional): sum(z[i] for i in {WV}) + sum(y[i] for i in {WA}) >= z[{l}]") 
+                            
+                if cp_heuristic and self.model.cbGet(gb.GRB.Callback.MIPNODE_OBJBST) == gb.GRB.INFINITY:
+                    primal_solution = self.primal_heuristic(x_val, y_val)
+                    if primal_solution and primal_solution.feasible():
+                        self.inject_solution(primal_solution)
+                        if verbose:
+                            print("Inject primal heuristic solution")
         
         self.model.optimize(callback)
     

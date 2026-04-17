@@ -73,7 +73,7 @@ class GRSC_CB_Instance:
                 else:
                     color_map.append('grey')  # Non-selected nodes
 
-        nx.draw(self.G, self.points, node_color=color_map, with_labels=True)
+        nx.draw(self.G, self.points, node_color=color_map)
     
     def __str__(self):
         return (
