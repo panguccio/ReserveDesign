@@ -50,9 +50,11 @@ class GRSC_CB_Instance:
         self.G.add_edges_from(self.E)
         
     def v_s(self, s):
+        '''For each s in S creates a set of suitable land sites'''
         return set(i for i in self.V if self.w[(i, s)] > 0)
     
     def delta_d_plus(self, i):
+        '''Returns the set of all nodes separated by at most d edges from i'''
         return set(nx.ego_graph(self.G, i, radius=self.d).nodes())
     
     def delta_d(self, i):
