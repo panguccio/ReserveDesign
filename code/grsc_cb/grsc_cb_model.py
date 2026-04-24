@@ -1,5 +1,4 @@
 import gurobipy as gb
-import numpy as np
 import networkx as nx
 from grsc_cb_instance import GRSC_CB_Instance
 from grsc_cb_partial_solution import PartialSolution
@@ -130,7 +129,7 @@ class GRSC_CB_Model:
                 self.model.addConstr(
                     self.y[i] <= self.z[i],
                     name=f"YZ-{i}")
-    
+   
     def separate_CORECON_fractional(self, z_val, y_val, tau=0.5):
 
         # build flow network
@@ -293,7 +292,9 @@ class GRSC_CB_Model:
         return DG
 
     def compute_shortest_path(self, set1, set2, weight_function):
-        # Implementation for computing shortest paths between two sets of nodes
+        """
+        Implementation for computing shortest paths between two sets of nodes
+        """
 
         # precompute node weights based on the provided weight function
         # we need to have non negative weights for Dijkstra's algorithm, so we take max with 0
@@ -371,75 +372,75 @@ class GRSC_CB_Model:
 
         return solution
 
-    def make_callback(self, cp_heuristic=False, cutpool=None, verbose=False):
+    def make_callback(self, cp_heuristic=False, cutpool=None, cnt=None, verbose=False):
         """
         Returns a branch-and-cut callback function.
         """
-        
+        node_var = self.z if self.B else self.x
+        if not cnt: cnt = {'corecon-int': 0, 'corecon-frc': 0, 'cover': 0, 'scc-s1': 0, 'scc-s2': 0}
+
         def callback(model, where):
 
             # integer solution
             if where == gb.GRB.Callback.MIPSOL:
-                z_val = {i: model.cbGetSolution(self.z[i]) for i in self.instance.V}
-                y_val = {i: model.cbGetSolution(self.y[i]) for i in self.instance.V}
-
-                # separation of CORECON constraints
-                for (WV, WA, l) in self.separate_CORECON_integer(z_val, y_val):
-                    model.cbLazy(gb.quicksum(self.z[i] for i in WV) + gb.quicksum(self.y[i] for i in WA) >= self.z[l])
+                node_val = {i: model.cbGetSolution(node_var[i]) for i in self.instance.V}
+                y_val    = {i: model.cbGetSolution(self.y[i])   for i in self.instance.V}
+                # separation of CORECON constraints [z in CB, x in C]
+                for (WV, WA, l) in self.separate_CORECON_integer(node_val, y_val):
+                    model.cbLazy(
+                        gb.quicksum(node_var[i] for i in WV) +
+                        gb.quicksum(self.y[i]   for i in WA) >= node_var[l])
                     if cutpool is not None:
                         cutpool.append((WV, WA, l))
-                    if verbose:
-                        print(f"Add constraint CORECON (integer): WV={WV}, WA={WA}, l={l}")
-
-                        # fractional solution (LP relaxation)
+                    cnt['corecon-int'] += 1
+        
+            # fractional solution (LP relaxation)
             if where == gb.GRB.Callback.MIPNODE:
                 if model.cbGet(gb.GRB.Callback.MIPNODE_STATUS) != gb.GRB.OPTIMAL:
                     return
 
-                z_val = {i: model.cbGetNodeRel(self.z[i]) for i in self.instance.V}
-                x_val = {i: model.cbGetNodeRel(self.x[i]) for i in self.instance.V}
-                y_val = {i: model.cbGetNodeRel(self.y[i]) for i in self.instance.V}
-                u_val = {s: model.cbGetNodeRel(self.u[s]) for s in self.instance.S}
+                node_val = {i: model.cbGetNodeRel(node_var[i]) for i in self.instance.V}
+                z_val    = {i: model.cbGetNodeRel(self.z[i])   for i in self.instance.V}
+                x_val    = {i: model.cbGetNodeRel(self.x[i])   for i in self.instance.V}
+                y_val    = {i: model.cbGetNodeRel(self.y[i])   for i in self.instance.V}
+                u_val    = {s: model.cbGetNodeRel(self.u[s])   for s in self.instance.S}
 
                 violated_inequality_found = False
 
-                # separation of COVER constraints
+                 # separation of COVER constraints [always z]
                 cover_cuts = self.separate_COVER(z_val, x_val, u_val)
                 for (Cs, s) in cover_cuts:
                     if s in self.instance.S_1:
                         model.cbLazy(gb.quicksum(self.z[i] for i in Cs) >= self.u[s])
-                        if verbose:
-                            print(f"Add constraint COVER (S1): Cs={Cs}, s={s}")
+                        cnt['cover-s1'] += 1
                     else:
                         model.cbLazy(gb.quicksum(self.x[i] for i in Cs) >= self.u[s])
-                        if verbose:
-                            print(f"Add constraint COVER (S2): Cs={Cs}, s={s}")
+                        cnt['cover-s2'] += 1
                     violated_inequality_found = True
 
-                # separation of SCC constraints
+                # separation of SCC constraints [z for the network, node_val for the cut]
                 for (WV, WA, s) in self.separate_SCC(z_val, y_val, u_val, cover_cuts):
-                    model.cbLazy(gb.quicksum(self.z[i] for i in WV) + gb.quicksum(self.y[i] for i in WA) >= self.u[s])
-                    if verbose:
-                        print(f"Add constraint SCC: WV={WV}, WA={WA}, s={s}")
+                    model.cbLazy(
+                        gb.quicksum(node_var[i] for i in WV) + gb.quicksum(self.y[i]   for i in WA) >= self.u[s])
+                    cnt['scc'] += 1
                     violated_inequality_found = True
 
-                # separation of CORECON constraints
+                # separation of CORECON constraints [z in CB, x in C]
                 if not violated_inequality_found:
-                    for (WV, WA, l) in self.separate_CORECON_fractional(z_val, y_val):
+                    for (WV, WA, l) in self.separate_CORECON_fractional(node_val, y_val):
                         model.cbLazy(
-                            gb.quicksum(self.z[i] for i in WV) + gb.quicksum(self.y[i] for i in WA) >= self.z[l])
+                            gb.quicksum(node_var[i] for i in WV) + gb.quicksum(self.y[i]   for i in WA) >= node_var[l])
                         if cutpool is not None:
                             cutpool.append((WV, WA, l))
-                        if verbose:
-                            print(f"Add constraint CORECON (fractional): WV={WV}, WA={WA}, l={l}")
+                        cnt['corecon-frc'] += 1
 
-                if cp_heuristic and self.model.cbGet(gb.GRB.Callback.MIPNODE_OBJBST) == gb.GRB.INFINITY:
+                if cp_heuristic and model.cbGet(gb.GRB.Callback.MIPNODE_OBJBST) == gb.GRB.INFINITY:
                     primal_solution = self.primal_heuristic(x_val, y_val)
                     if primal_solution and primal_solution.feasible():
-                        self.inject_solution(primal_solution)
+                        self.cb_inject_solution(model, primal_solution)
                         if verbose:
-                            print("Primal heuristic solution injected")
-
+                            print(f"\t * Solution of Primal Heuristic injected. Nodes: {primal_solution.Sx}")
+            
         return callback
 
     def local_branching(self, initial_solution: PartialSolution, r=5, delta_r=5, max_r=20, iteration_time_limit=20,
@@ -481,7 +482,10 @@ class GRSC_CB_Model:
             self.model.setParam('TimeLimit', min(iteration_time_limit, remaining))
 
             new_cuts = []
-            self.model.optimize(self.make_callback(cutpool=new_cuts, verbose=True))
+            cnt = {'corecon-int': 0, 'corecon-frc': 0, 'cover': 0, 'scc-s1': 0, 'scc-s2': 0}
+            self.model.optimize(self.make_callback(cutpool=new_cuts,  verbose=True))
+            if verbose and sum(cnt.values()) > 0:
+                print(f"\t * Added constraints: {cnt}")
 
             # add cuts to the model
             for (WV, WA, l) in new_cuts:
@@ -506,7 +510,7 @@ class GRSC_CB_Model:
         self.model.setParam('TimeLimit', gb.GRB.INFINITY)
 
         if verbose:
-            print(f"LB completed. Best objective: {best_obj:.2f}, Iterations: {iteration}")
+            print(f"\t * LB heuristic completed. Best objective: {best_obj:.2f}, Iterations: {iteration}")
 
         return best_Sx, best_Sz, best_obj
 
@@ -521,8 +525,32 @@ class GRSC_CB_Model:
             else:
                 self.u[s].Start = 0
 
-    def solve(self, basic=False, cp_heuristic=False, lb_heuristic=False, verbose=False):
+    def cb_inject_solution(self, model, solution: PartialSolution):
+        # Creiamo una lista di variabili e una lista di valori
+        vars_to_set = []
+        vals_to_set = []
 
+        for i in self.instance.V:
+            vars_to_set.append(self.x[i])
+            vals_to_set.append(1 if i in solution.Sx else 0)
+            
+            vars_to_set.append(self.z[i])
+            vals_to_set.append(1 if i in solution.Sz else 0)
+
+        for s in self.instance.S:
+            vars_to_set.append(self.u[s])
+            vals_to_set.append(1 if solution.us(s) else 0)
+
+        # Comunichiamo la soluzione al solver
+        model.cbSetSolution(vars_to_set, vals_to_set)
+        # Spesso è utile chiamare cbUseSolution per forzare Gurobi a valutarla subito
+        model.cbUseSolution()
+    
+    def solve(self, basic=False, cp_heuristic=False, lb_heuristic=False, verbose=False):
+        
+        if self.C: basic = True
+        elif self.B: basic = False
+        
         if not basic:
             self.model.optimize()
             return
@@ -532,23 +560,36 @@ class GRSC_CB_Model:
         if cp_heuristic:
             initial_solution = self.construction_heuristic()
             if initial_solution:
+                print(f"\t * Initial solution found with Construction Heuristic. Nodes: {initial_solution.Sx}")
                 self.inject_solution(initial_solution)
+            
 
         if lb_heuristic and initial_solution:
             (best_Sx, best_Sz, best_obj) = self.local_branching(initial_solution, verbose=verbose)
             for i in self.instance.V:
                 self.x[i].Start = 1 if i in best_Sx else 0
                 self.z[i].Start = 1 if i in best_Sz else 0
-
-        self.model.optimize(self.make_callback(cp_heuristic=cp_heuristic, verbose=True))
+        
+        cnt = {'corecon-int': 0, 'corecon-frc': 0, 'cover': 0, 'scc-s1': 0, 'scc-s2': 0}
+        self.model.optimize(self.make_callback(cp_heuristic=cp_heuristic, cnt=cnt, verbose=True))
+        if verbose and sum(cnt.values()) > 0:
+            print(f"\t * Added constraints: {cnt}")
 
     def print_graph(self):
         self.instance.draw_graph(self.x, self.z, self.u)
 
     def print_solution(self):
-        print("Status:", self.model.Status)
+        status_map = {
+            gb.GRB.OPTIMAL:    "Optimal",
+            gb.GRB.SUBOPTIMAL: "Suboptimal",
+            gb.GRB.TIME_LIMIT: "Time limit",
+            gb.GRB.INFEASIBLE: "Infeasible",
+        }
+        status = self.model.Status
+        print("Status:", status, status_map.get(status, f"Code {status}"))
         print("Objective:", self.model.ObjVal)
         if self.model.Status == gb.GRB.OPTIMAL:
             print("Nodes in the reserve (x):", [i for i in self.instance.V if self.x[i].X > 0.5])
             print("Nodes in the core (z):", [i for i in self.instance.V if self.z[i].X > 0.5])
             print("Species protected (u):", [s for s in self.instance.S if self.u[s].X > 0.5])
+            print("r-arc-node separators (y):", [i for i in self.instance.V if self.y[i].X > 0.5])
