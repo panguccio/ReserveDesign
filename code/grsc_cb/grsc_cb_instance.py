@@ -30,7 +30,7 @@ class GRSC_CB_Instance:
     d : int
         Width of the protection buffer.
     """
-    def __init__(self, V, E, points, S_1, S_2, P_1, P_2, k, w, lambda_s, c, d=1):
+    def __init__(self, V, E, points, S_1, S_2, P_1, P_2, k, w, lambda_s, c, tau, d=1):
         self.V = V
         self.E = E
         self.points = points
@@ -43,24 +43,30 @@ class GRSC_CB_Instance:
         self.w = w
         self.lambda_s = lambda_s
         self.c = c
+        self.tau = tau
         self.d = d
         
         self.G = nx.Graph()
         self.G.add_nodes_from(self.V)
         self.G.add_edges_from(self.E)
+        self._precompute_neighborhoods()
         
     def v_s(self, s):
         '''For each s in S creates a set of suitable land sites'''
         return set(i for i in self.V if self.w[(i, s)] > 0)
     
+    def _precompute_neighborhoods(self):
+        self._delta_d = {}
+        for i in self.V:
+            neighbors = nx.ego_graph(self.G, i, radius=self.d).nodes()
+            self._delta_d[i] = frozenset(int(n) for n in neighbors)
+    
     def delta_d_plus(self, i):
         '''Returns the set of all nodes separated by at most d edges from i'''
-        return set(nx.ego_graph(self.G, i, radius=self.d).nodes())
+        return self._delta_d[i]
     
     def delta_d(self, i):
-        neighborhood = self.delta_d_plus(i)
-        neighborhood.remove(i)  # removes node i
-        return neighborhood
+        return self._delta_d[i] - {i} # removes node i
     
     def draw_graph(self, x=None, z=None, u=None):
         color_map = []
