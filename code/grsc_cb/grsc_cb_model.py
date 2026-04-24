@@ -171,7 +171,7 @@ class GRSC_CB_Model:
         return DG
     
     def separate_CORECON_fractional(self, z_val, y_val):
-
+        n_nodes = len(self.instance.V)
         # build flow network
         DG = self.build_flow_network(z_val, y_val)
 
@@ -182,27 +182,28 @@ class GRSC_CB_Model:
             if z_val[l] < self.instance.tau:
                 continue
 
-            try:
-                cut_val, (root_side, l_side) = nx.minimum_cut(
-                    DG, 'root', (l, 'out'), capacity='capacity')
-            except Exception:
-                continue
-
-            if cut_val >= z_val[l] - EPS:
+            # try: 
+                # cut_val, (root_side, l_side) = nx.minimum_cut(DG, 'root', (l, 'out'), capacity='capacity')
+            # except Exception:
+                # continue
+            
+            cut = DG.mincut('root', n_nodes + l, capacity="capacity")
+            
+            if cut.value >= z_val[l] - EPS:
                 continue
 
             WV = []  # nodes separated by the cut
             WA = []  # arcs with capacity y that are in the cut
 
             for i in self.instance.V:
-                i_in = (i, 'in')
-                i_out = (i, 'out')
+                i_in = i
+                i_out = n_nodes + i
 
-                if i_in in root_side and i_out in l_side:
+                if i_in in cut.partition and i_out not in cut.partition:
                     if i <= l:  # down-lifting, preventing symmetrical solutions
                         WV.append(i)
 
-                if i_in not in root_side:
+                if i_in not in cut.partition:
                     if i <= l:  # down-lifting
                         WA.append(i)
 
@@ -273,6 +274,7 @@ class GRSC_CB_Model:
         return cuts
 
     def separate_SCC(self, z_val, y_val, u_val, cover_cuts):
+        n_nodes = len(self.instance.V)
 
         cuts = []
 
@@ -282,24 +284,21 @@ class GRSC_CB_Model:
                 continue
 
             DG = self.build_flow_network(z_val, y_val, add_sink=True, Cs=Cs)
+            cut = DG.mincut('root', 'sink', capacity='capacity')
 
-            try:
-                cut_val, (root_side, sink_side) = nx.minimum_cut(
-                    DG, 'root', 'sink', capacity='capacity')
-            except Exception:
+            if cut.value >= u_val[s] - EPS:
                 continue
-
-            if cut_val >= u_val[s] - EPS:
-                continue
+            
+            root_side = set(cut.partition[0])
 
             WV = []  # nodes separated by the cut
             WA = []  # arcs with capacity y that are in the cut
 
             for i in self.instance.V:
-                i_in = (i, 'in')
-                i_out = (i, 'out')
+                i_in = i
+                i_out = n_nodes + i
 
-                if i_in in root_side and i_out in sink_side:
+                if i_in in root_side and i_out not in root_side:
                     WV.append(i)
 
                 if i_in not in root_side:
