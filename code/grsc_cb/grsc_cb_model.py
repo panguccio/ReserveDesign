@@ -4,6 +4,8 @@ from grsc_cb_instance import GRSC_CB_Instance
 from grsc_cb_partial_solution import PartialSolution
 import random
 import time
+import igraph as ig
+
 
 INF = 1e9  # large constant
 EPS = 1e-6  # small constant
@@ -32,7 +34,7 @@ class GRSC_CB_Model:
 
         self.instance = instance
         self.model = gb.Model("GRSC-CB")
-        self._build_base_graph()
+        self.build_flow_graph()
         if seed is not None: random.seed(seed)
 
         # allow lazy constraints to be added by the callback function
@@ -110,7 +112,7 @@ class GRSC_CB_Model:
         # CONNECTIVITY CONSTRAINTS
         if C:
             
-            # Connected component constraints: the number of connected components in the reserve must be at most k
+            # Connected component con straints: the number of connected components in the reserve must be at most k
             self.model.addConstr(
                 gb.quicksum(self.y[j] for j in instance.V) <= instance.k,
                 name=f"NCOMP")
@@ -131,31 +133,40 @@ class GRSC_CB_Model:
                 self.model.addConstr(
                     self.y[i] <= self.z[i],
                     name=f"YZ-{i}")
-   
-    def _build_base_graph(self):
-        DG = nx.DiGraph()
-        DG.add_node('root')
+    
+    def build_flow_graph(self):
+        DG = ig.Graph()
         
-        for i in self.instance.V:
-            DG.add_edge((i, 'in'), (i, 'out'), capacity=0)
-            DG.add_edge('root', (i, 'in'), capacity=0)
+        n_nodes = len(self.instance.V)
+        DG.add_vertices(range(2 * n_nodes))
+        DG.add_vertices('root')
+        DG.add_vertices('sink')
 
+        for i in self.instance.V:
+            DG.add_edges([(i, n_nodes + i)], {"capacity": 0}) # from i_in to i_out
+            DG.add_edges([('root', i)], {"capacity": 0}) # from root to in
+            DG.add_edges([(n_nodes + i, 'sink')], {"capacity": 0}) # from i_out to sink
+            
         for (u, v) in self.instance.E:
-            DG.add_edge((u, 'out'), (v, 'in'), capacity=INF)
-            DG.add_edge((v, 'out'), (u, 'in'), capacity=INF)
-
+            DG.add_edges([(n_nodes + u, v)], {"capacity": INF}) # from u_out to v_in
+            DG.add_edges([(n_nodes + v, u)], {"capacity": INF}) # from v_out to u_in
+        
+        
         self.DG = DG
-        
+    
     def build_flow_network(self, z_val, y_val, add_sink=False, Cs=None):
+        DG = self.DG
+        n_nodes = len(self.instance.V)
         
-        DG = self.DG.copy()
         for i in self.instance.V:
-            DG[(i, 'in')][(i, 'out')]['capacity'] = max(0, z_val[i])
-            DG['root'][(i, 'in')]['capacity'] = max(0, y_val[i])
+            z_edge, y_edge = DG.get_eid(i, n_nodes + i), DG.get_eid('root', i)
+            DG.es[z_edge]["capacity"] = max(0, z_val[i])
+            DG.es[y_edge]["capacity"] = max(0, y_val[i])
        
         if add_sink:
             for i in Cs:
-                DG.add_edge((i, 'out'), 'sink', capacity=INF)
+                sink_edge = DG.get_eid(n_nodes + i, 'sink')
+                DG.es[sink_edge]["capacity"] = INF
 
         return DG
     
@@ -556,7 +567,7 @@ class GRSC_CB_Model:
         # Spesso è utile chiamare cbUseSolution per forzare Gurobi a valutarla subito
         model.cbUseSolution()
     
-    def solve(self, basic=False, cp_heuristic=False, lb_heuristic=False, verbose=False):
+    def solve(self, basic=False, cp_heuristic=False, lb_heuristic=False, verbose=True):
         
         if self.C: basic = True
         elif self.B: basic = False
@@ -591,7 +602,7 @@ class GRSC_CB_Model:
             print(f"\t * Added constraints: {cnt}")
 
     def print_graph(self):
-        self.instance.draw_graph(self.x, self.z, self.u)
+        self.instance.draw_graph(self.x, self.z, self.u, self.B)
 
     def print_solution(self):
         status_map = {
@@ -608,3 +619,5 @@ class GRSC_CB_Model:
             print("Nodes in the core (z):", [i for i in self.instance.V if self.z[i].X > 0.5])
             print("Species protected (u):", [s for s in self.instance.S if self.u[s].X > 0.5])
             print("r-arc-node separators (y):", [i for i in self.instance.V if self.y[i].X > 0.5])
+        if status != gb.GRB.INFEASIBLE:
+            self.print_graph()
