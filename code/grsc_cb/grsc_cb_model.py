@@ -28,15 +28,17 @@ class GRSC_CB_Model:
         C -> enable connectivity constraints
     """
 
-    def __init__(self, instance: GRSC_CB_Instance, B=False, C=False):
+    def __init__(self, instance: GRSC_CB_Instance, B=False, C=False, seed=None, output_flag=False):
 
         self.instance = instance
         self.model = gb.Model("GRSC-CB")
+        self._build_base_graph()
+        if seed is not None: random.seed(seed)
 
         # allow lazy constraints to be added by the callback function
         self.model.Params.LazyConstraints = 1
 
-        self.model.setParam('OutputFlag', 0)
+        self.model.setParam('OutputFlag', int(output_flag))
 
         # VARIABLES
 
@@ -130,7 +132,34 @@ class GRSC_CB_Model:
                     self.y[i] <= self.z[i],
                     name=f"YZ-{i}")
    
-    def separate_CORECON_fractional(self, z_val, y_val, tau=0.5):
+    def _build_base_graph(self):
+        DG = nx.DiGraph()
+        DG.add_node('root')
+        
+        for i in self.instance.V:
+            DG.add_edge((i, 'in'), (i, 'out'), capacity=0)
+            DG.add_edge('root', (i, 'in'), capacity=0)
+
+        for (u, v) in self.instance.E:
+            DG.add_edge((u, 'out'), (v, 'in'), capacity=INF)
+            DG.add_edge((v, 'out'), (u, 'in'), capacity=INF)
+
+        self.DG = DG
+        
+    def build_flow_network(self, z_val, y_val, add_sink=False, Cs=None):
+        
+        DG = self.DG.copy()
+        for i in self.instance.V:
+            DG[(i, 'in')][(i, 'out')]['capacity'] = max(0, z_val[i])
+            DG['root'][(i, 'in')]['capacity'] = max(0, y_val[i])
+       
+        if add_sink:
+            for i in Cs:
+                DG.add_edge((i, 'out'), 'sink', capacity=INF)
+
+        return DG
+    
+    def separate_CORECON_fractional(self, z_val, y_val):
 
         # build flow network
         DG = self.build_flow_network(z_val, y_val)
@@ -139,7 +168,7 @@ class GRSC_CB_Model:
         cuts = []
 
         for l in self.instance.V:
-            if z_val[l] < tau:
+            if z_val[l] < self.instance.tau:
                 continue
 
             try:
@@ -270,27 +299,6 @@ class GRSC_CB_Model:
 
         return cuts
 
-    def build_flow_network(self, z_val, y_val, add_sink=False, Cs=None):
-        DG = nx.DiGraph()
-
-        DG.add_node('root')
-        if add_sink:
-            DG.add_node('sink')
-
-        for i in self.instance.V:
-            DG.add_edge((i, 'in'), (i, 'out'), capacity=max(0, z_val[i]))
-            DG.add_edge('root', (i, 'in'), capacity=max(0, y_val[i]))
-
-        for (u, v) in self.instance.E:
-            DG.add_edge((u, 'out'), (v, 'in'), capacity=INF)
-            DG.add_edge((v, 'out'), (u, 'in'), capacity=INF)
-
-        if add_sink:
-            for i in Cs:
-                DG.add_edge((i, 'out'), 'sink', capacity=INF)
-
-        return DG
-
     def compute_shortest_path(self, set1, set2, weight_function):
         """
         Implementation for computing shortest paths between two sets of nodes
@@ -328,7 +336,7 @@ class GRSC_CB_Model:
 
         while not solution.feasible():
             T = solution.terminal_nodes()
-            if not T:
+            if not T or not solution.Sz:
                 break
             path = self.compute_shortest_path(set1=solution.Sz, set2=T,
                                               weight_function=solution.node_cost_function(cost))
@@ -361,6 +369,8 @@ class GRSC_CB_Model:
     def primal_heuristic(self, x_tilde, y_tilde):
 
         pool = [i for i in self.instance.V if y_tilde[i] >= 0.001]
+        if not pool:
+            return None
         cost = {i: self.instance.c[i] * (1 - x_tilde[i]) for i in self.instance.V}
 
         # phase 1: create a frasible solution in a greedy fashion
@@ -558,20 +568,25 @@ class GRSC_CB_Model:
         initial_solution = None
 
         if cp_heuristic:
+            if verbose: print(f"\t * Starting construction heuristic...")
             initial_solution = self.construction_heuristic()
             if initial_solution:
-                print(f"\t * Initial solution found with Construction Heuristic. Nodes: {initial_solution.Sx}")
+                if verbose: print(f"\t * Initial solution found with Construction Heuristic. Nodes: {initial_solution.Sx}")
                 self.inject_solution(initial_solution)
             
 
         if lb_heuristic and initial_solution:
+            if verbose: print(f"\t * Starting local branching heuristic...")
             (best_Sx, best_Sz, best_obj) = self.local_branching(initial_solution, verbose=verbose)
             for i in self.instance.V:
                 self.x[i].Start = 1 if i in best_Sx else 0
                 self.z[i].Start = 1 if i in best_Sz else 0
         
         cnt = {'corecon-int': 0, 'corecon-frc': 0, 'cover': 0, 'scc-s1': 0, 'scc-s2': 0}
+        
+        if verbose: print(f"\t * Starting gurobi optimization...")
         self.model.optimize(self.make_callback(cp_heuristic=cp_heuristic, cnt=cnt, verbose=True))
+        
         if verbose and sum(cnt.values()) > 0:
             print(f"\t * Added constraints: {cnt}")
 
