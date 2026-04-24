@@ -79,7 +79,7 @@ class GRSC_CB_Instance:
     
     def __str__(self):
         return (
-        f"GRSC_CB_Instance(n={len(self.V)}, m={len(self.E)}, "
+        f"GRSC_CB_Instance(|V|={len(self.V)}, |E|={len(self.E)}, "
         f"|S1|={len(self.S_1)}, |S2|={len(self.S_2)}, "
         f"P1={self.P_1}, P2={self.P_2}, k={self.k}, d={self.d})"
         )
