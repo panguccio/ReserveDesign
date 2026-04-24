@@ -15,6 +15,8 @@ class GRSC_CB_Instance:
         List of sites of species 1 that need to be protected in the core areas.
     S_2 : list
         List of sites of species 2 defined as S_2 = S\S_1.
+    S : list
+        List of all sites, concatenation of S_1 and S_2.
     P_1 : int
         Number of species 1 that need to be protected.
     P_2 : int
@@ -50,36 +52,57 @@ class GRSC_CB_Instance:
         self.G.add_nodes_from(self.V)
         self.G.add_edges_from(self.E)
         self._precompute_neighborhoods()
+        self._precompute_species_sets()
         
     def v_s(self, s):
-        '''For each s in S creates a set of suitable land sites'''
-        return set(i for i in self.V if self.w[(i, s)] > 0)
+        """Returns the precomputed set of suitable land sites for species s."""
+        return self._Vs[s]
     
     def _precompute_neighborhoods(self):
-        self._delta_d = {}
+        """Precomputes neighborhoods once to avoid set operations in the callback."""
+        self._delta_d_plus_map = {}
+        self._delta_d_minus_map = {}
         for i in self.V:
-            neighbors = nx.ego_graph(self.G, i, radius=self.d).nodes()
-            self._delta_d[i] = frozenset(int(n) for n in neighbors)
+            neighbors = set(nx.ego_graph(self.G, i, radius=self.d).nodes())
+            self._delta_d_plus_map[i] = frozenset(neighbors)
+            self._delta_d_minus_map[i] = frozenset(neighbors - {i})
+
+    def _precompute_species_sets(self):
+        """Precomputes the set of suitable nodes for each species."""
+        self._Vs = {
+            s: frozenset(i for i in self.V if self.w.get((i, s), 0) > 0)
+            for s in self.S
+        }
     
     def delta_d_plus(self, i):
-        '''Returns the set of all nodes separated by at most d edges from i'''
-        return self._delta_d[i]
+        """Returns the set of all nodes separated by at most d edges from i"""
+        return self._delta_d_plus_map[i]
     
     def delta_d(self, i):
-        return self._delta_d[i] - {i} # removes node i
-    
-    def draw_graph(self, x=None, z=None, u=None):
+        return self._delta_d_minus_map[i]
+        
+    def draw_graph(self, x=None, z=None, u=None, buffer=False):
+        """
+        Draws the graph with nodes colored according to selection and buffer status.
+        """
         color_map = []
         if x is None or z is None:
-            color_map = ['grey' for _ in self.V]  # Default color for all nodes
-        else:
-            for i in self.V:
-                if z[i].X > 0.5:
-                    color_map.append('green')  # Selected nodes
-                elif x[i].X > 0.5:
-                    color_map.append('yellow')  # Buffer nodes
+            # Default color for all nodes
+            color_map = ['grey' for _ in self.V]
+            return 
+        
+        for i in self.V:
+            if z[i].X > 0.5: # Core nodes
+                color_map.append('green')  
+            elif x[i].X > 0.5: # Buffer nodes
+                if buffer:
+                    color_map.append('yellow')  
                 else:
-                    color_map.append('grey')  # Non-selected nodes
+                    color_map.append('green')
+            else:
+                color_map.append('grey')  # Non-selected nodes
+
+        nx.draw(self.G, self.points, node_color=color_map)
 
         nx.draw(self.G, self.points, node_color=color_map)
     
