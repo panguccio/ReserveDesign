@@ -67,10 +67,14 @@ class GRSC_CB_Instance:
             self._delta_d_plus_map[i] = frozenset(neighbors)
             self._delta_d_minus_map[i] = frozenset(neighbors - {i})
 
-    def _precompute_species_sets(self):
-        """Precomputes the set of suitable nodes for each species."""
+    def _precompute_species_quantities(self):
+        """Precomputes the set of suitable nodes for each species and the sum of the suitability quota in them."""
         self._Vs = {
-            s: frozenset(i for i in self.V if self.w.get((i, s), 0) > 0)
+            s: frozenset(i for i in self.V if self.w[(i, s)] > 0)
+            for s in self.S
+        }
+        self._Ws = {
+            s: sum(self.w([(i, s)]) for i in self._Vs[s]) 
             for s in self.S
         }
     
