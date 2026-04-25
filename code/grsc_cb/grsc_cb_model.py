@@ -139,8 +139,8 @@ class GRSC_CB_Model:
         
         n_nodes = len(self.instance.V)
         DG.add_vertices(range(2 * n_nodes))
-        DG.add_vertices('root')
-        DG.add_vertices('sink')
+        DG.add_vertices(['root', 'sink'])
+        
 
         for i in self.instance.V:
             DG.add_edges([(i, n_nodes + i)], {"capacity": 0}) # from i_in to i_out
@@ -238,30 +238,31 @@ class GRSC_CB_Model:
         return cuts
 
     def separate_COVER(self, z_val, x_val, u_val):
-
         cuts = []
+        w_dict = self.instance.w
+        lambda_dict = self.instance.lambda_s
 
         for s in self.instance.S:
             var_val = z_val if s in self.instance.S_1 else x_val
-
             Vs = self.instance.v_s(s)
             if not Vs:
                 continue
 
-            Ws = sum(self.instance.w[(i, s)] for i in Vs)
-            threshold = Ws - self.instance.lambda_s[s]
+            # Use precomputed sum
+            Ws = self.instance._Ws[s]
+            threshold = Ws - lambda_dict[s]
 
             if threshold <= 0:
                 continue
 
             # sorts nodes in non decreasing way by z/w (S_1) or x/w (S_2)
-            sorted_Vs = sorted(Vs, key=lambda i: var_val[i] / (self.instance.w[(i, s)] + EPS), reverse=True)
+            sorted_Vs = sorted(Vs, key=lambda i: var_val[i] / (w_dict[(i, s)] + EPS), reverse=True)
 
             Cs = []
             partial_sum = 0
             for i in sorted_Vs:
                 Cs.append(i)
-                partial_sum += self.instance.w[(i, s)]
+                partial_sum += w_dict[(i, s)]
                 if partial_sum >= threshold:
                     break
 
@@ -284,7 +285,7 @@ class GRSC_CB_Model:
                 continue
 
             DG = self.build_flow_network(z_val, y_val, add_sink=True, Cs=Cs)
-            cut = DG.mincut('root', 'sink', capacity='capacity')
+            cut = DG.mincut(self.root_idx, self.sink_idx, capacity='capacity')
 
             if cut.value >= u_val[s] - EPS:
                 continue
@@ -396,20 +397,26 @@ class GRSC_CB_Model:
         """
         Returns a branch-and-cut callback function.
         """
+        # standardize dictionary keys for counters
+        if cnt is None: 
+            cnt.update({'corecon-int': 0, 'corecon-frc': 0, 'cover-s1': 0, 'cover-s2': 0, 'scc': 0})
+        
+        # local references to speed up access
         node_var = self.z if self.B else self.x
-        if not cnt: cnt = {'corecon-int': 0, 'corecon-frc': 0, 'cover': 0, 'scc-s1': 0, 'scc-s2': 0}
+        V_list = self.instance.V
+        S_list = self.instance.S
+        y_vars = self.y
 
         def callback(model, where):
-
             # integer solution
             if where == gb.GRB.Callback.MIPSOL:
-                node_val = {i: model.cbGetSolution(node_var[i]) for i in self.instance.V}
-                y_val    = {i: model.cbGetSolution(self.y[i])   for i in self.instance.V}
+                node_val = {i: model.cbGetSolution(node_var[i]) for i in V_list}
+                y_val    = {i: model.cbGetSolution(y_vars[i])   for i in V_list}
                 # separation of CORECON constraints [z in CB, x in C]
                 for (WV, WA, l) in self.separate_CORECON_integer(node_val, y_val):
                     model.cbLazy(
                         gb.quicksum(node_var[i] for i in WV) +
-                        gb.quicksum(self.y[i]   for i in WA) >= node_var[l])
+                        gb.quicksum(y_vars[i]   for i in WA) >= node_var[l])
                     if cutpool is not None:
                         cutpool.append((WV, WA, l))
                     cnt['corecon-int'] += 1
@@ -419,11 +426,11 @@ class GRSC_CB_Model:
                 if model.cbGet(gb.GRB.Callback.MIPNODE_STATUS) != gb.GRB.OPTIMAL:
                     return
 
-                node_val = {i: model.cbGetNodeRel(node_var[i]) for i in self.instance.V}
-                z_val    = {i: model.cbGetNodeRel(self.z[i])   for i in self.instance.V}
-                x_val    = {i: model.cbGetNodeRel(self.x[i])   for i in self.instance.V}
-                y_val    = {i: model.cbGetNodeRel(self.y[i])   for i in self.instance.V}
-                u_val    = {s: model.cbGetNodeRel(self.u[s])   for s in self.instance.S}
+                node_val = {i: model.cbGetNodeRel(node_var[i]) for i in V_list}
+                z_val    = {i: model.cbGetNodeRel(self.z[i])   for i in V_list}
+                x_val    = {i: model.cbGetNodeRel(self.x[i])   for i in V_list}
+                y_val    = {i: model.cbGetNodeRel(y_vars[i])   for i in V_list}
+                u_val    = {s: model.cbGetNodeRel(self.u[s])   for s in S_list}
 
                 violated_inequality_found = False
 
@@ -441,7 +448,7 @@ class GRSC_CB_Model:
                 # separation of SCC constraints [z for the network, node_val for the cut]
                 for (WV, WA, s) in self.separate_SCC(z_val, y_val, u_val, cover_cuts):
                     model.cbLazy(
-                        gb.quicksum(node_var[i] for i in WV) + gb.quicksum(self.y[i]   for i in WA) >= self.u[s])
+                        gb.quicksum(node_var[i] for i in WV) + gb.quicksum(y_vars[i]   for i in WA) >= self.u[s])
                     cnt['scc'] += 1
                     violated_inequality_found = True
 
@@ -449,7 +456,7 @@ class GRSC_CB_Model:
                 if not violated_inequality_found:
                     for (WV, WA, l) in self.separate_CORECON_fractional(node_val, y_val):
                         model.cbLazy(
-                            gb.quicksum(node_var[i] for i in WV) + gb.quicksum(self.y[i]   for i in WA) >= node_var[l])
+                            gb.quicksum(node_var[i] for i in WV) + gb.quicksum(y_vars[i]   for i in WA) >= node_var[l])
                         if cutpool is not None:
                             cutpool.append((WV, WA, l))
                         cnt['corecon-frc'] += 1
