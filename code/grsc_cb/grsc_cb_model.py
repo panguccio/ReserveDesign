@@ -5,7 +5,7 @@ from grsc_cb_partial_solution import PartialSolution
 import random
 import time
 import igraph as ig
-
+from reserve_graph import FlowGraph
 
 INF = 1e9  # large constant
 EPS = 1e-6  # small constant
@@ -34,7 +34,8 @@ class GRSC_CB_Model:
 
         self.instance = instance
         self.model = gb.Model("GRSC-CB")
-        self.build_flow_graph()
+        self.digraph = FlowGraph(nodes=self.instance.V, edges=self.instance.E)
+
         if seed is not None: random.seed(seed)
 
         # allow lazy constraints to be added by the callback function
@@ -133,47 +134,12 @@ class GRSC_CB_Model:
                 self.model.addConstr(
                     self.y[i] <= self.z[i],
                     name=f"YZ-{i}")
-    
-    def build_flow_graph(self):
-        DG = ig.Graph()
-        
-        n_nodes = len(self.instance.V)
-        DG.add_vertices(range(2 * n_nodes))
-        DG.add_vertices(['root', 'sink'])
-        
 
-        for i in self.instance.V:
-            DG.add_edges([(i, n_nodes + i)], {"capacity": 0}) # from i_in to i_out
-            DG.add_edges([('root', i)], {"capacity": 0}) # from root to in
-            DG.add_edges([(n_nodes + i, 'sink')], {"capacity": 0}) # from i_out to sink
-            
-        for (u, v) in self.instance.E:
-            DG.add_edges([(n_nodes + u, v)], {"capacity": INF}) # from u_out to v_in
-            DG.add_edges([(n_nodes + v, u)], {"capacity": INF}) # from v_out to u_in
-        
-        
-        self.DG = DG
-    
-    def build_flow_network(self, z_val, y_val, add_sink=False, Cs=None):
-        DG = self.DG
-        n_nodes = len(self.instance.V)
-        
-        for i in self.instance.V:
-            z_edge, y_edge = DG.get_eid(i, n_nodes + i), DG.get_eid('root', i)
-            DG.es[z_edge]["capacity"] = max(0, z_val[i])
-            DG.es[y_edge]["capacity"] = max(0, y_val[i])
-       
-        if add_sink:
-            for i in Cs:
-                sink_edge = DG.get_eid(n_nodes + i, 'sink')
-                DG.es[sink_edge]["capacity"] = INF
-
-        return DG
     
     def separate_CORECON_fractional(self, z_val, y_val):
         n_nodes = len(self.instance.V)
         # build flow network
-        DG = self.build_flow_network(z_val, y_val)
+        self.digraph.build_flow_network(z_val, y_val)
 
         # separation of fractional solutions
         cuts = []
@@ -187,10 +153,12 @@ class GRSC_CB_Model:
             # except Exception:
                 # continue
             
-            cut = DG.mincut('root', n_nodes + l, capacity="capacity")
+            cut = self.digraph.root_mincut(l)
             
             if cut.value >= z_val[l] - EPS:
                 continue
+            
+            root_side = set(cut.partition[0])
 
             WV = []  # nodes separated by the cut
             WA = []  # arcs with capacity y that are in the cut
@@ -199,11 +167,11 @@ class GRSC_CB_Model:
                 i_in = i
                 i_out = n_nodes + i
 
-                if i_in in cut.partition and i_out not in cut.partition:
+                if i_in in root_side and i_out not in root_side:
                     if i <= l:  # down-lifting, preventing symmetrical solutions
                         WV.append(i)
 
-                if i_in not in cut.partition:
+                if i_in not in root_side:
                     if i <= l:  # down-lifting
                         WA.append(i)
 
@@ -284,8 +252,8 @@ class GRSC_CB_Model:
             if s in self.instance.S_2:
                 continue
 
-            DG = self.build_flow_network(z_val, y_val, add_sink=True, Cs=Cs)
-            cut = DG.mincut(self.root_idx, self.sink_idx, capacity='capacity')
+            self.digraph.build_flow_network(z_val, y_val, add_sink=True, Cs=Cs)
+            cut = self.digraph.root_sink_mincut('sink')
 
             if cut.value >= u_val[s] - EPS:
                 continue
@@ -399,7 +367,7 @@ class GRSC_CB_Model:
         """
         # standardize dictionary keys for counters
         if cnt is None: 
-            cnt.update({'corecon-int': 0, 'corecon-frc': 0, 'cover-s1': 0, 'cover-s2': 0, 'scc': 0})
+            cnt = {'corecon-int': 0, 'corecon-frc': 0, 'cover-s1': 0, 'cover-s2': 0, 'scc': 0}
         
         # local references to speed up access
         node_var = self.z if self.B else self.x
