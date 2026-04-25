@@ -143,15 +143,15 @@ class GRSC_CB_Model:
 
         # separation of fractional solutions
         cuts = []
+        tot_WA = set()
 
-        for l in self.instance.V:
+        # in reversed order because this way we can identify nodes there will be cut and skip them 
+        # (this is because of downlifting)
+        for l in sorted(self.instance.V, reverse=True):
+            if l in tot_WA:
+                continue
             if z_val[l] < self.instance.tau:
                 continue
-
-            # try: 
-                # cut_val, (root_side, l_side) = nx.minimum_cut(DG, 'root', (l, 'out'), capacity='capacity')
-            # except Exception:
-                # continue
             
             cut = self.digraph.root_mincut(l)
             
@@ -174,7 +174,8 @@ class GRSC_CB_Model:
                 if i_in not in root_side:
                     if i <= l:  # down-lifting
                         WA.append(i)
-
+                        
+            tot_WA.update(WA)
             if WV or WA:
                 cuts.append((WV, WA, l))
 
@@ -195,13 +196,16 @@ class GRSC_CB_Model:
             # if at least one node is connected to the root
             if any(y_val[i] > 0.5 for i in component):  
                 continue
-
-            WA = list(component)
-            WV = list({j for i in component for j in G.neighbors(i) if j not in component})
-
+            
             # down-lifting
             l = min(component)  
-            cuts.append((WV, WA, l))
+            
+            WA = [i for i in component if i <= l]
+            boundary = {j for i in component for j in G.neighbors(i) if j not in component}
+            WV = [j for j in boundary if j <= l]
+            
+            if WA or WV:
+                cuts.append((WV, WA, l))
 
         return cuts
 
@@ -253,7 +257,7 @@ class GRSC_CB_Model:
                 continue
 
             self.digraph.build_flow_network(z_val, y_val, add_sink=True, Cs=Cs)
-            cut = self.digraph.root_sink_mincut('sink')
+            cut = self.digraph.root_sink_mincut()
 
             if cut.value >= u_val[s] - EPS:
                 continue
@@ -478,7 +482,7 @@ class GRSC_CB_Model:
 
             new_cuts = []
             cnt = {'corecon-int': 0, 'corecon-frc': 0, 'cover': 0, 'scc-s1': 0, 'scc-s2': 0}
-            self.model.optimize(self.make_callback(cutpool=new_cuts,  verbose=True))
+            self.model.optimize(self.make_callback(cutpool=new_cuts, cnt=cnt,  verbose=True))
             if verbose and sum(cnt.values()) > 0:
                 print(f"\t * Added constraints: {cnt}")
 
