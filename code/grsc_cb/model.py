@@ -1,7 +1,7 @@
 import gurobipy as gb
 import networkx as nx
-from grsc_cb_instance import GRSC_CB_Instance
-from grsc_cb_partial_solution import PartialSolution
+from instance import GRSC_CB_Instance
+from partial_solution import PartialSolution
 import random
 import time
 import igraph as ig

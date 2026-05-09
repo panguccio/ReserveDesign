@@ -1,6 +1,6 @@
 import cProfile, pstats
-from grsc_cb_model import GRSC_CB_Model
-from grsc_cb_instance import GRSC_CB_Instance
+from model import GRSC_CB_Model
+from instance import GRSC_CB_Instance
 import numpy as np
 from scipy.spatial import Delaunay, ConvexHull
 import networkx as nx
@@ -9,7 +9,7 @@ SEED = 15
 
 np.random.seed(SEED)
 # number of land parcels
-n = 900
+n = 400
 # number of species
 m = 10
 # number of max connected areas
@@ -77,11 +77,13 @@ instance = GRSC_CB_Instance(V, E, points,
 
 instance.draw_graph()
 print(instance)
-model = GRSC_CB_Model(instance, C=True, seed=SEED, output_flag=True)
+model = GRSC_CB_Model(instance, B=True, C=True, seed=SEED)
 
 profiler = cProfile.Profile()
 profiler.enable()
-result = model.solve(verbose=True)
+result = model.solve(cp_heuristic=True, lb_heuristic=True, verbose=True)
+
+    
 profiler.disable()
 
 model.print_solution()
