@@ -1,6 +1,6 @@
 from grsc_cb_instance import GRSC_CB_Instance
 
-'''Creates a partial solution for the heuristic'''
+"""Creates a partial solution for the heuristic"""
 class PartialSolution:
     def __init__(self, instance: GRSC_CB_Instance):
         self.instance = instance
@@ -10,35 +10,35 @@ class PartialSolution:
         self.W_s = {s: 0 for s in self.instance.S} # suitability score of the current solution for each specie s
 
     def add_to_core(self, nodes):
-        '''adds a node to the core and all its neighbor to the buffer'''
+        """adds a node to the core and all its neighbor to the buffer"""
         for i in nodes:
             self.Sz.add(i)
-            self.Sx.add(i)
+            self.Sx.add(int(i))
             for s in self.instance.S_1:
                 self.W_s[s] += self.instance.w[(i, s)]
             for j in self.instance.delta_d(i):
-                self.Sx.add(j)
+                self.Sx.add(int(j))
                 for s in self.instance.S_2:
                     self.W_s[s] += self.instance.w[(j, s)]
     
     def us(self, s):
-        '''if suitability quota of a specie is met, returns true, false otherwise'''
+        """if suitability quota of a specie is met, returns true, false otherwise"""
         return self.W_s[s] >= self.instance.lambda_s[s]
     
     def protected_S1(self):
-        '''returns true if at least P_1 species from S_1 are protected'''
+        """returns true if at least P_1 species from S_1 are protected"""
         return sum(1 for s in self.instance.S_1 if self.us(s)) >= self.instance.P_1
     
     def protected_S2(self):
-        '''returns true if at least P_2 species from S_2 are protected'''
+        """returns true if at least P_2 species from S_2 are protected"""
         return sum(1 for s in self.instance.S_2 if self.us(s)) >= self.instance.P_2
     
     def feasible(self):
-        '''returns true if current solution is feasible'''
+        """returns true if current solution is feasible"""
         return self.protected_S1() and self.protected_S2()
     
     def helpful(self, i):
-        '''node i is helpful if adding it to the core increases suitability score'''
+        """node i is helpful if adding it to the core increases suitability score"""
         if not self.protected_S1():
             for s in self.instance.S_1:
                 if self.instance.w[(i, s)] > 0 and not self.us(s):
@@ -62,7 +62,7 @@ class PartialSolution:
         return terminal_nodes
     
     def node_cost_function(self, cost):
-        '''this node cost function will be use for the shortest-path calculations'''
+        """this node cost function will be use for the shortest-path calculations"""
         
         def cost_function(i):
             
@@ -86,7 +86,7 @@ class PartialSolution:
         return cost_function
     
     def post_process(self):
-        '''once we found a solution we try to improve it by removing unneccessary nodes'''
+        """once we found a solution we try to improve it by removing unneccessary nodes"""
         improved = True
         while improved:
             improved = False
@@ -121,7 +121,7 @@ class PartialSolution:
                     break
                 
     def objective(self):
-        '''returns objective function of the partial solution'''
+        """returns objective function of the partial solution"""
         return sum(self.instance.c[i] for i in self.Sx)
                         
                 
