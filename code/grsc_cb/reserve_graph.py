@@ -30,11 +30,11 @@ class FlowGraph:
             
             # root -- i_in
             self.es_root[i] = graph.ecount()
-            graph.add_edges([('root', i)], {"capacity": 0}) 
+            graph.add_edges([(self.root_id, i)], {"capacity": 0}) 
             
             # i_out -- sink
             self.es_sink[i] = graph.ecount()
-            graph.add_edges([(self.n_nodes + i, 'sink')], {"capacity": 0}) 
+            graph.add_edges([(self.n_nodes + i, self.sink_id)], {"capacity": 0}) 
             
         for (u, v) in self.edges:
             # u_out -- v_in
@@ -51,8 +51,8 @@ class FlowGraph:
         
         for i in self.nodes:
             capacities[self.es_inout[i]] = max(0, z_val[i])
-            capacities[self.es_root[i]] = max(0, z_val[i])
-            # capacities[self.es_sink[i]] = 0
+            capacities[self.es_root[i]] = max(0, y_val[i])
+            capacities[self.es_sink[i]] = 0
        
         if add_sink:
             for i in Cs:
@@ -63,7 +63,7 @@ class FlowGraph:
         return graph
     
     def root_mincut(self, node):
-        return self.graph.mincut('root', self.n_nodes + node, capacity="capacity")
+        return self.graph.mincut(self.root_id, self.n_nodes + node, capacity="capacity")
 
     def root_sink_mincut(self):
-        return self.root_mincut('sink')
+        return self.graph.mincut(self.root_id, self.sink_id, capacity="capacity")
