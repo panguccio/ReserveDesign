@@ -6,6 +6,8 @@ import random
 import time
 import igraph as ig
 from reserve_graph import FlowGraph
+import heapq
+import numpy as np
 
 INF = 1e9  # large constant
 EPS = 1e-6  # small constant
@@ -36,7 +38,10 @@ class GRSC_CB_Model:
         self.model = gb.Model("GRSC-CB")
         self.digraph = FlowGraph(nodes=self.instance.V, edges=self.instance.E)
 
-        if seed is not None: random.seed(seed)
+        if seed is not None: 
+            random.seed(seed)
+            self.model.Params.Seed = seed   # set seed for reproducibility
+            self.model.Params.Threads = 1  
 
         # allow lazy constraints to be added by the callback function
         self.model.Params.LazyConstraints = 1
@@ -219,9 +224,9 @@ class GRSC_CB_Model:
         lambda_dict = self.instance.lambda_s
         
         for s in self.instance.S:
-            Vs = self.instance.Vs 
+            Vs = list(self.instance.Vs[s])
         
-            if not Vs[s]:
+            if not Vs:
                 continue
 
             # Use precomputed sum
@@ -230,16 +235,16 @@ class GRSC_CB_Model:
 
             if threshold <= 0:
                 continue
-
+            
             # sorts nodes in non decreasing way by z/w (S_1) or x/w (S_2)
             # sorted_Vs = sorted(Vs, key=lambda i: var_val[i] / (w_dict[(i, s)] + EPS))
             var_val = z_val if s in self.instance.S_1 else x_val
-            ratios = {i: var_val[i] / w_dict[(i, s)] + EPS for i in Vs[s]}
-            sorted_Vs = sorted(Vs[s], key=ratios.get)
+            ratios = np.array([var_val[i] / w_dict[(i, s)] for i in Vs])
+            order = np.argsort(ratios)
 
-            Cs = []
-            partial_sum = 0
-            for i in sorted_Vs:
+            Cs, partial_sum = [], 0
+            for idx in order:
+                i = Vs[idx]
                 Cs.append(i)
                 partial_sum += w_dict[(i, s)]
                 if partial_sum >= threshold:
