@@ -52,11 +52,11 @@ class GRSC_CB_Instance:
         self.G.add_nodes_from(self.V)
         self.G.add_edges_from(self.E)
         self._precompute_neighborhoods()
-        self._precompute_species_sets()
+        self._precompute_species_quantities()
         
     def v_s(self, s):
         """Returns the precomputed set of suitable land sites for species s."""
-        return self._Vs[s]
+        return self.Vs[s]
     
     def _precompute_neighborhoods(self):
         """Precomputes neighborhoods once to avoid set operations in the callback."""
@@ -69,12 +69,12 @@ class GRSC_CB_Instance:
 
     def _precompute_species_quantities(self):
         """Precomputes the set of suitable nodes for each species and the sum of the suitability quota in them."""
-        self._Vs = {
+        self.Vs = {
             s: frozenset(i for i in self.V if self.w[(i, s)] > 0)
             for s in self.S
         }
         self._Ws = {
-            s: sum(self.w([(i, s)]) for i in self._Vs[s]) 
+            s: sum(self.w[(i, s)] for i in self.Vs[s]) 
             for s in self.S
         }
     
