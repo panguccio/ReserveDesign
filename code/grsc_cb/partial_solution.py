@@ -65,8 +65,8 @@ class PartialSolution:
         """this node cost function will be use for the shortest-path calculations"""
         
         def cost_function(i):
-            
-            Ci = sum(cost[j] for j in (self.instance.delta_d_plus(i) - self.Sx))
+            new_neighbors = self.instance.delta_d_plus(i) - self.Sx
+            Ci = sum(cost[j] for j in new_neighbors)
             
             prot_S1 = int(self.protected_S1())
             prot_S2 = int(self.protected_S2())
@@ -77,7 +77,7 @@ class PartialSolution:
                 sum_W1 += helpfulness1
             sum_W2 = 0
             for s in self.instance.S_2:
-                sum_w = sum(self.instance.w[(j, s)] for j in (self.instance.delta_d_plus(i) - self.Sx))
+                sum_w = sum(self.instance.w[(j, s)] for j in new_neighbors)
                 helpfulness2 = (sum_w + self.W_s[s] - self.instance.lambda_s[s]) * (1 - int(self.us(s)))
                 sum_W2 += helpfulness2
                 
