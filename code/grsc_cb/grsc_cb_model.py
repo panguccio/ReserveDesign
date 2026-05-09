@@ -45,16 +45,16 @@ class GRSC_CB_Model:
 
         # VARIABLES
 
-        # x[i] = 1 if land parcel i is selected in the reserve, 0 otherwise
+        # land parcels in the reserve
         self.x = self.model.addVars(instance.V, vtype=gb.GRB.BINARY, name="x")
 
-        # z[i] = 1 if land parcel i is in the core, 0 otherwise
+        # core parcels
         self.z = self.model.addVars(instance.V, vtype=gb.GRB.BINARY, name="z")
 
-        # u[s] = 1 if species s is protected, 0 otherwise
+        # protection of species
         self.u = self.model.addVars(instance.S, vtype=gb.GRB.BINARY, name="u")
 
-        # y[i] = 1 if land parcel i is in the buffer zone, 0 otherwise
+        # r-arc-node separators
         self.y = self.model.addVars(instance.V, vtype=gb.GRB.BINARY, name="y")
 
         # OBJECTIVE FUNCTION: minimize the cost of selected land parcels
@@ -62,7 +62,7 @@ class GRSC_CB_Model:
 
         # GENERAL CONSTRAINTS
 
-        # Suitability quota constraints for S1 and S2: the ecological suitability of the reserve must be at least lambda_s[s] for each
+        # suitability quota constraints for S1 and S2
 
         for s in instance.S_1:
             self.model.addConstr(
@@ -76,7 +76,7 @@ class GRSC_CB_Model:
                     s],
                 name=f"S2-SQ-{s}")
 
-        # Protection constraints for S1 and S2: at least P_1 species in S_1 and P_2 species in S_2 must be protected
+        # protection constraints for S1 and S2
 
         self.model.addConstr(
             gb.quicksum(self.u[s] for s in instance.S_1) >= instance.P_1,
@@ -86,7 +86,7 @@ class GRSC_CB_Model:
             gb.quicksum(self.u[s] for s in instance.S_2) >= instance.P_2,
             name="S2-PROTECT")
 
-        # Linking constraints: if a parcel is in the core, then it's in the reserve
+        # linking constraints
         for i in instance.V:
             self.model.addConstr(self.z[i] <= self.x[i], name=f"LINK-{i}")
 
@@ -145,9 +145,13 @@ class GRSC_CB_Model:
         cuts = []
         tot_WA = set()
 
-        # in reversed order because this way we can identify nodes there will be cut and skip them 
-        # (this is because of downlifting)
-        for l in sorted(self.instance.V, reverse=True):
+        # filtered by tau and if already in a precedent cut
+        candidates = [l for l in self.instance.V if (z_val[l] < self.instance.tau or l in tot_WA)]
+        
+        # in reversed order because this way are more likely to skip nodes in tot_WA
+        # otherwise they're ordered due to downlifting
+        candidates.sort(reverse=True)
+        for l in candidates:
             if l in tot_WA:
                 continue
             if z_val[l] < self.instance.tau:
@@ -213,11 +217,11 @@ class GRSC_CB_Model:
         cuts = []
         w_dict = self.instance.w
         lambda_dict = self.instance.lambda_s
-
+        
         for s in self.instance.S:
-            var_val = z_val if s in self.instance.S_1 else x_val
-            Vs = self.instance.v_s(s)
-            if not Vs:
+            Vs = self.instance.Vs 
+        
+            if not Vs[s]:
                 continue
 
             # Use precomputed sum
@@ -228,7 +232,10 @@ class GRSC_CB_Model:
                 continue
 
             # sorts nodes in non decreasing way by z/w (S_1) or x/w (S_2)
-            sorted_Vs = sorted(Vs, key=lambda i: var_val[i] / (w_dict[(i, s)] + EPS), reverse=True)
+            # sorted_Vs = sorted(Vs, key=lambda i: var_val[i] / (w_dict[(i, s)] + EPS))
+            var_val = z_val if s in self.instance.S_1 else x_val
+            ratios = {i: var_val[i] / w_dict[(i, s)] + EPS for i in Vs[s]}
+            sorted_Vs = sorted(Vs[s], key=ratios.get)
 
             Cs = []
             partial_sum = 0
@@ -243,7 +250,6 @@ class GRSC_CB_Model:
 
             if sum(var_val[i] for i in Cs) < u_val[s] - EPS:
                 cuts.append((Cs, s))
-
         return cuts
 
     def separate_SCC(self, z_val, y_val, u_val, cover_cuts):
@@ -257,8 +263,9 @@ class GRSC_CB_Model:
                 continue
 
             self.digraph.build_flow_network(z_val, y_val, add_sink=True, Cs=Cs)
+            
             cut = self.digraph.root_sink_mincut()
-
+            
             if cut.value >= u_val[s] - EPS:
                 continue
             
@@ -365,13 +372,16 @@ class GRSC_CB_Model:
 
         return solution
 
+    def init_counters(self):
+        return {'corecon-int': 0, 'corecon-frc': 0, 'cover-s1': 0, 'cover-s2': 0, 'scc': 0}
+    
     def make_callback(self, cp_heuristic=False, cutpool=None, cnt=None, verbose=False):
         """
         Returns a branch-and-cut callback function.
         """
         # standardize dictionary keys for counters
         if cnt is None: 
-            cnt = {'corecon-int': 0, 'corecon-frc': 0, 'cover-s1': 0, 'cover-s2': 0, 'scc': 0}
+            cnt = self.init_counters()
         
         # local references to speed up access
         node_var = self.z if self.B else self.x
@@ -481,7 +491,7 @@ class GRSC_CB_Model:
             self.model.setParam('TimeLimit', min(iteration_time_limit, remaining))
 
             new_cuts = []
-            cnt = {'corecon-int': 0, 'corecon-frc': 0, 'cover': 0, 'scc-s1': 0, 'scc-s2': 0}
+            cnt = self.init_counters()
             self.model.optimize(self.make_callback(cutpool=new_cuts, cnt=cnt,  verbose=True))
             if verbose and sum(cnt.values()) > 0:
                 print(f"\t * Added constraints: {cnt}")
@@ -525,7 +535,7 @@ class GRSC_CB_Model:
                 self.u[s].Start = 0
 
     def cb_inject_solution(self, model, solution: PartialSolution):
-        # Creiamo una lista di variabili e una lista di valori
+        # to update the solution during the primal heuristic, we need to use cbSetSolution
         vars_to_set = []
         vals_to_set = []
 
@@ -540,9 +550,7 @@ class GRSC_CB_Model:
             vars_to_set.append(self.u[s])
             vals_to_set.append(1 if solution.us(s) else 0)
 
-        # Comunichiamo la soluzione al solver
         model.cbSetSolution(vars_to_set, vals_to_set)
-        # Spesso è utile chiamare cbUseSolution per forzare Gurobi a valutarla subito
         model.cbUseSolution()
     
     def solve(self, basic=False, cp_heuristic=False, lb_heuristic=False, verbose=True):
@@ -571,8 +579,7 @@ class GRSC_CB_Model:
                 self.x[i].Start = 1 if i in best_Sx else 0
                 self.z[i].Start = 1 if i in best_Sz else 0
         
-        cnt = {'corecon-int': 0, 'corecon-frc': 0, 'cover': 0, 'scc-s1': 0, 'scc-s2': 0}
-        
+        cnt = self.init_counters()
         if verbose: print(f"\t * Starting gurobi optimization...")
         self.model.optimize(self.make_callback(cp_heuristic=cp_heuristic, cnt=cnt, verbose=True))
         
