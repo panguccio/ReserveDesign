@@ -314,10 +314,9 @@ class GRSC_CB_Model:
 
         def edge_weight(u, v, data):
             # we're computing the node weighted shortest path, so the weight of an edge can be approximated with the average of the weights of its endpoints
-
             return (node_weights[u] + node_weights[v]) / 2
 
-        distances, paths = nx.multi_source_dijkstra(self.instance.G, set1, weight=edge_weight)
+        distances, paths = self.instance.G.get_shortest_paths(set1, weight=edge_weight)
 
         best_distance = INF
         best_path = None
@@ -600,10 +599,10 @@ class GRSC_CB_Model:
         if verbose and sum(cnt.values()) > 0:
             print(f"\t * Added constraints: {cnt}")
 
-    def print_graph(self):
-        self.instance.draw_graph(self.x, self.z, self.u, self.B)
+    def print_graph(self, with_labels=False):
+        self.instance.G.draw_graph(x=self.x, z=self.z, with_buffer=self.B, with_labels=with_labels)
 
-    def print_solution(self):
+    def print_solution(self, with_labels=False):
         status_map = {
             gb.GRB.OPTIMAL:    "Optimal",
             gb.GRB.SUBOPTIMAL: "Suboptimal",
@@ -617,6 +616,6 @@ class GRSC_CB_Model:
             print("Nodes in the reserve (x):", [i for i in self.instance.V if self.x[i].X > 0.5])
             print("Nodes in the core (z):", [i for i in self.instance.V if self.z[i].X > 0.5])
             print("Species protected (u):", [s for s in self.instance.S if self.u[s].X > 0.5])
-            print("r-arc-node separators (y):", [i for i in self.instance.V if self.y[i].X > 0.5])
+            if self.C: print("r-arc-node separators (y):", [i for i in self.instance.V if self.y[i].X > 0.5])
         if status != gb.GRB.INFEASIBLE:
-            self.print_graph()
+            self.print_graph(with_labels=with_labels)

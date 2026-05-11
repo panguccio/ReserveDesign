@@ -1,5 +1,4 @@
 import networkx as nx
-import numpy as np
 
 class GRSC_CB_Instance:
     """
@@ -32,10 +31,10 @@ class GRSC_CB_Instance:
     d : int
         Width of the protection buffer.
     """
-    def __init__(self, V, E, points, S_1, S_2, P_1, P_2, k, w, lambda_s, c, tau, d=1):
-        self.V = V
-        self.E = E
-        self.points = points
+    def __init__(self, G, S_1, S_2, P_1, P_2, k, w, lambda_s, c, tau, d=1):
+        self.G = G
+        self.V = set(G.nodes)
+        self.E = set(G.edges)
         self.S_1 = S_1
         self.S_2 = S_2
         self.S = S_1 + S_2
@@ -47,13 +46,10 @@ class GRSC_CB_Instance:
         self.c = c
         self.tau = tau
         self.d = d
-        
-        self.G = nx.Graph()
-        self.G.add_nodes_from(self.V)
-        self.G.add_edges_from(self.E)
+
         self._precompute_neighborhoods()
         self._precompute_species_quantities()
-        
+       
     def v_s(self, s):
         """Returns the precomputed set of suitable land sites for species s."""
         return self.Vs[s]
@@ -63,7 +59,7 @@ class GRSC_CB_Instance:
         self._delta_d_plus_map = {}
         self._delta_d_minus_map = {}
         for i in self.V:
-            neighbors = set(nx.ego_graph(self.G, i, radius=self.d).nodes())
+            neighbors = self.G.neighbors(i, radius=self.d)
             self._delta_d_plus_map[i] = frozenset(neighbors)
             self._delta_d_minus_map[i] = frozenset(neighbors - {i})
 
@@ -84,31 +80,10 @@ class GRSC_CB_Instance:
     
     def delta_d(self, i):
         return self._delta_d_minus_map[i]
-        
-    def draw_graph(self, x=None, z=None, u=None, buffer=False):
-        """
-        Draws the graph with nodes colored according to selection and buffer status.
-        """
-        color_map = []
-        if x is None or z is None:
-            # Default color for all nodes
-            color_map = ['grey' for _ in self.V]
-            return 
-        
-        for i in self.V:
-            if z[i].X > 0.5: # Core nodes
-                color_map.append('green')  
-            elif x[i].X > 0.5: # Buffer nodes
-                if buffer:
-                    color_map.append('yellow')  
-                else:
-                    color_map.append('green')
-            else:
-                color_map.append('grey')  # Non-selected nodes
-
-        nx.draw(self.G, self.points, node_color=color_map)
-
-        nx.draw(self.G, self.points, node_color=color_map)
+    
+    def get_graph(self):
+        return self.G.G
+    
     
     def __str__(self):
         return (
