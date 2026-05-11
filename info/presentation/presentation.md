@@ -3,6 +3,7 @@ marp: true
 title: GRSC-CB presentation
 theme: grsc
 paginate: true
+
 ---
 
 # Generalized Reserve Set Covering Problem with Buffer and Connectivity Requirements
@@ -513,7 +514,6 @@ $$
 #### CORECON  separation 
 
 * In both the fractional and integer case, **downlifting** is done
-* The CORECON not all cuts are considered, but just the ones 
 * Not all $j \in W_A$ are considered, but only $j \leq \mathscr l$
 * So all connected components are rooted to the node with smallest index
 
@@ -651,8 +651,8 @@ $$
   * We impose a time limit, if that is reached this means that no better solution is found in the neighborhood so we increas its size by $\Delta_r$
   * Whenever a best solution is found, the size of the neighborhood is reset to $r$.
 
-Whenever a best solution is found, the size of the neighborhood is reset to r.
 ---
+
 ## Heuristics
 ### Local-branching heuristic
 
@@ -669,7 +669,6 @@ Whenever a best solution is found, the size of the neighborhood is reset to r.
   \sum_{i \in S_z} z_i \geq |S_z|-r
   $$
   
-
 - This ensures that at least $S_{z-r}$ of the core land parcels of the solution $S$ also belongs to the new solution.
   In our implementation we used $r=5$, time limit= $20s, \Delta_r=5, r_{max}=20$
 
