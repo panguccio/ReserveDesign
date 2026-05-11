@@ -32,7 +32,7 @@ class GRSC_CB_Model:
         C -> enable connectivity constraints
     """
 
-    def __init__(self, instance: GRSC_CB_Instance, B=False, C=False, seed=None, output_flag=False):
+    def __init__(self, instance: GRSC_CB_Instance, B=True, C=True, seed=None, output_flag=False):
 
         self.instance = instance
         self.model = gb.Model("GRSC-CB")
