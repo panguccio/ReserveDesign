@@ -37,7 +37,7 @@
 
 ##### Constraints
 
-* $\sum_{i \in V_s} x_i\geq 1, \quad \forall s \in S $: assures that each specie is covered by a suitable land site 
+* $\sum_{i \in V_s} x_i\geq 1, \quad \forall s \in S$: assures that each specie is covered by a suitable land site 
 
 ##### Objective Function
 
@@ -84,7 +84,7 @@ $$
 #### Common definitions
 
 * $S_1$ $\subseteq S$ → set of species that need to stay in the core area
-* $S_2$ $\subseteq S, S_1 \cup S_2 = S, S_1 \cap S_2 = \varnothing $ → the other species
+* $S_2$ $\subseteq S, S_1 \cup S_2 = S, S_1 \cap S_2 = \varnothing$ → the other species
 * $w: V\times S \rightarrow \mathbb{R} ^+$ → **habitat suitability function** measures how advisable is a site $i \in V$ for a specie $s \in S$
 
 > [!WARNING]
