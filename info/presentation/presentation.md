@@ -12,7 +12,8 @@ paginate: true
 
 ![h16](https://units.coursecatalogue.cineca.it/assets/logo/units.png)
 
-
+---
+# Introduction
 ---
 ## The GRSC-CB problem
 ### Definition of the problem
@@ -33,6 +34,8 @@ paginate: true
     * Valid inequalities
     * Construction and primal heuristic
     * Local branching heuristic
+---
+# Generalized Reserve Set Covering Problem
 
 ---
 ## RSC: Reserve Set Covering problem
@@ -214,6 +217,10 @@ $$
 \end{align*}
 $$
 
+
+---
+# Buffer and Connectivity requirements
+
 ---
 
 ## GRSC-B: GRSC with Buffer requirements
@@ -379,7 +386,9 @@ $$
 $$
 
 ---
+# Branch-and-cut framework
 
+---
 ## Branch-and-cut framework
 
 * In the GRSC-CB and GRSC-C, the family of constraints caused by **connectivity cuts** (CORECON and ALLCON) are <u>exponential</u> in number
@@ -543,20 +552,150 @@ $$
 > For **integer solutions**, only connectivity cuts (CORECON) are separated (Step 2)
 
 ---
+# Heuristics
+---
+
 ## Heuristics
 
 ### Construction heuristic
 
+* The construction heuristic generates a starting solution for initializing the branch-and-cut
+  * **Phase 1**: creates a feasible solution in a greedy fashion
+  * **Phase 2**: runs a post-processing to remove unnecessary nodes from $S_z$
+
+---
+
+## Heuristics
+
+### Construction heuristic
+
+#### Node-cost function
+
+* Let $N(i) = \delta_d^+(i) \setminus S_x$ be the **new nodes** added to the reserve by selecting $i$.
+
+* **Incremental cost** — cost of the new nodes:
+  $$C_i = \sum_{j \in N(i)} c_j$$
+
+* **Suitability gain** — how much $i$ helps unprotected species:
+  $$\mathcal{W}_s(i) = \begin{cases} w_i^s + W_s - \lambda_s & s \in S_1 \\ \sum_{j\in N(i)} w_j^s + W_s - \lambda_s & s \in S_2 \end{cases} \quad \text{(zero if } s \text{ already protected)}$$
+
+* **Node-cost function** (lower = better):
+  $$\Delta_i = \frac{C_i}{\text{gain for }S_1 \cdot \mathbf{1}[\text{S1 unmet}] + \text{gain for }S_2 \cdot \mathbf{1}[\text{S2 unmet}]}$$
+
+---
+
+
+## Heuristics
+
+### Construction heuristic
+
+#### Phase 1
+* In this heuristic the partial solution $S$ is stored as $(S_z, S_x)$ where $S_z$ contains the core nodes and $S_x$ contains all nodes. 
+* We also keep track of the habitat score of the nodes in the partial solution which will be stored in $W_s(S)$. 
+
+* **Goal:** build a feasible solution greedily, growing the core until (PROTECT) is satisfied.
+
+* Let $T(S)$ = set of **helpful** nodes not yet in $S_z$:
+a node is helpful if adding it to the core could protect at least one currently unprotected species.
+
+---
+
+## Heuristics
+
+### Construction heuristic
+#### Phase 1
+
+1. Pick $k$ random nodes as roots (one per component); add them to $S_z$, expand $S_x$ with their buffer
+2. **While** (PROTECT) not satisfied:
+    - Find the shortest path (weighted by $\Delta_i$) from $S_z$ to any node in $T(S)$
+    - Add all nodes on the path to the core; expand $S_x$ with their buffers
+    - Update $T(S)$
+
+> The computation of the shortest-path is done with the Dijkstra algorithm using the node-cost function defined before
+
 ---
 ## Heuristics
+
+### Construction heuristic
+#### Phase 2
+* We iterate through the nodes $i \in S_z$ and check if, after removing $i$, the solution remains feasible.
+* Together with $i$ we remove also the nodes from $delta_d(i)$ which become redundant after removing $i$, i.e. we remove the set
+
+$$
+S_x^i = \delta_d^+(i) \setminus \bigcup_{j\in S_z, j \neq i} \delta_d^+(j)
+$$
+
+
+* Let $i^*$ be the node whose removal results in the largest improvement in the objective function, remove $i^*$ from S_z and $S^i_x$ from $S_x$ and repeat the process until no additional node can be removed
+
+---
+
+## Heuristics
 ### Primal heuristic
+* Incorporated in the branch-and-cut framework (as a callback)
+#### Phase 1
+
+* Essentially the same as the construction heuristic, with 2 differences:
+  * In the **node-cost** function: $c_i$ is replaced by $c_i(1 - \tilde{x}_i)$ → to account for nodes already/partially selected in the LP solution
+  * The randomly generated starting solutions use nodes with $\tilde{y}_i \geq 0.001$ as seeds
+
+#### Phase 1
+* The same as the construction heuristic
 
 ---
 ## Heuristics
 ### Local-branching heuristic
+
+* The solution found by the construction heuristic is further improved using the local branching:
+  * In each local search iteration, we extend the basic ILP-formulation of the problem through an additional local branching constraint which specifies the $r$-neighborhood w.r.t. $S$
+  * We impose a time limit, if that is reached this means that no better solution is found in the neighborhood so we increas its size by $\Delta_r$
+  * Whenever a best solution is found, the size of the neighborhood is reset to $r$.
+
+Whenever a best solution is found, the size of the neighborhood is reset to r.
+---
+## Heuristics
+### Local-branching heuristic
+
+- The procedure is repeated until
+
+- The maximum number of local iterations is reached,
+
+- The maximum neighborhood size is reached, or
+
+- The overall time limit for the local branching is reached.
+
+- Let $S_z$ be the set of i with $z_i=1$ in a given solution $S$, let r be a given radius, the following constraint is utilized:
+  $$
+  \sum_{i \in S_z} z_i \geq |S_z|-r
+  $$
+  
+
+- This ensures that at least $S_{z-r}$ of the core land parcels of the solution $S$ also belongs to the new solution.
+  In our implementation we used $r=5$, time limit= $20s, \Delta_r=5, r_{max}=20$
+
+
 ---
 ## Results
 ### Test
+
+* Given
+
+  * $n$ number of land parcels
+
+  * $m$ number of species
+
+  * $k$ number of max connected areas 
+
+* We generate a random instance graph where each node is connected to its neighboors using Delunaay triangulation
+
+* The habitat suitability score function is zero:
+
+  * For the external nodes and $s$ in $S_1$
+  * with probability 20% if the species $s$ is in $S_1$
+  * with probability 10% otherwise
+
+* The suitability quota is defined as: $\lambda_s = \lceil 0.05 \rceil \sum_{i \in V_S} w^S_i$
+
 
 ---
 ## Results
