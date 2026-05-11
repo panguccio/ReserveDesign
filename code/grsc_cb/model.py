@@ -1,11 +1,11 @@
 import gurobipy as gb
 import networkx as nx
-from instance import GRSC_CB_Instance
-from partial_solution import PartialSolution
+from grsc_cb.instance import GRSC_CB_Instance
+from grsc_cb.partial_solution import PartialSolution
 import random
 import time
 import igraph as ig
-from reserve_graph import FlowGraph
+from grsc_cb.reserve_graph import FlowGraph
 import heapq
 import numpy as np
 
@@ -32,7 +32,7 @@ class GRSC_CB_Model:
         C -> enable connectivity constraints
     """
 
-    def __init__(self, instance: GRSC_CB_Instance, B=True, C=True, seed=None, output_flag=False):
+    def __init__(self, instance: GRSC_CB_Instance, simple=False, B=True, C=True, seed=None, output_flag=False):
 
         self.instance = instance
         self.model = gb.Model("GRSC-CB")
@@ -62,10 +62,19 @@ class GRSC_CB_Model:
         # r-arc-node separators
         self.y = self.model.addVars(instance.V, vtype=gb.GRB.BINARY, name="y")
 
-        # OBJECTIVE FUNCTION: minimize the cost of selected land parcels
-        self.model.setObjective(gb.quicksum(instance.c[i] * self.x[i] for i in instance.V), gb.GRB.MINIMIZE)
-
+        if simple:
+            # alternative OF in case of simple RSC problem
+            self.model.setObjective(gb.quicksum(self.x[i] for i in instance.V), gb.GRB.MINIMIZE)
+        else:
+            # OBJECTIVE FUNCTION: minimize the cost of selected land parcels
+            self.model.setObjective(gb.quicksum(instance.c[i] * self.x[i] for i in instance.V), gb.GRB.MINIMIZE)
+        
         # GENERAL CONSTRAINTS
+        
+        # species coverage
+        
+        for s in instance.S:
+            self.model.addConstr(gb.quicksum(self.x[i] for i in instance.v_s(s)) >= 1, name="COV")
 
         # suitability quota constraints for S1 and S2
 

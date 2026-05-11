@@ -1,6 +1,6 @@
 import cProfile, pstats
-from model import GRSC_CB_Model
-from instance import GRSC_CB_Instance
+from grsc_cb.model import GRSC_CB_Model
+from grsc_cb.instance import GRSC_CB_Instance
 import numpy as np
 from scipy.spatial import Delaunay, ConvexHull
 import networkx as nx

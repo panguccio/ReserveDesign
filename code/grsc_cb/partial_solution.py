@@ -1,4 +1,4 @@
-from instance import GRSC_CB_Instance
+from grsc_cb.instance import GRSC_CB_Instance
 
 """Creates a partial solution for the heuristic"""
 class PartialSolution:
