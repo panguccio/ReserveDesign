@@ -33,9 +33,10 @@ class GRSC_CB_Model:
     """
 
     def __init__(self, instance: GRSC_CB_Instance, simple=False, B=True, C=True, seed=None, output_flag=False):
-
+        
         self.instance = instance
         self.model = gb.Model("GRSC-CB")
+        self.model.setParam('OutputFlag', int(output_flag))
         self.digraph = FlowGraph(nodes=self.instance.V, edges=self.instance.E)
 
         if seed is not None: 
@@ -45,8 +46,6 @@ class GRSC_CB_Model:
 
         # allow lazy constraints to be added by the callback function
         self.model.Params.LazyConstraints = 1
-
-        self.model.setParam('OutputFlag', int(output_flag))
 
         # VARIABLES
 
@@ -566,7 +565,7 @@ class GRSC_CB_Model:
         model.cbSetSolution(vars_to_set, vals_to_set)
         model.cbUseSolution()
     
-    def solve(self, basic=False, cp_heuristic=False, lb_heuristic=False, verbose=True):
+    def solve(self, basic=False, cp_heuristic=False, lb_heuristic=False, verbose=False):
         
         if self.C: basic = True
         elif self.B: basic = False
@@ -599,6 +598,11 @@ class GRSC_CB_Model:
         if verbose and sum(cnt.values()) > 0:
             print(f"\t * Added constraints: {cnt}")
 
+    def get_time(self):
+        if self.model.Status != gb.GRB.INFEASIBLE:
+            return self.model.Runtime
+        return 0
+    
     def print_graph(self, with_labels=False):
         self.instance.G.draw_graph(x=self.x, z=self.z, with_buffer=self.B, with_labels=with_labels)
 
@@ -611,11 +615,11 @@ class GRSC_CB_Model:
         }
         status = self.model.Status
         print("Status:", status, status_map.get(status, f"Code {status}"))
-        print("Objective:", self.model.ObjVal)
-        if self.model.Status == gb.GRB.OPTIMAL:
+        if status == gb.GRB.OPTIMAL:
             print("Nodes in the reserve (x):", [i for i in self.instance.V if self.x[i].X > 0.5])
             print("Nodes in the core (z):", [i for i in self.instance.V if self.z[i].X > 0.5])
             print("Species protected (u):", [s for s in self.instance.S if self.u[s].X > 0.5])
             if self.C: print("r-arc-node separators (y):", [i for i in self.instance.V if self.y[i].X > 0.5])
         if status != gb.GRB.INFEASIBLE:
+            print("Objective:", self.model.ObjVal)
             self.print_graph(with_labels=with_labels)
