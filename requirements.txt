@@ -1,0 +1,8 @@
+numpy
+gurobipy
+networkx
+matplotlib
+scipy
+igraph
+shapely
+tqdm
