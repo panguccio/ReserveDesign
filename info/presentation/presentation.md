@@ -10,10 +10,11 @@ paginate: true
 <!-- _header: '' -->
 <!-- _footer: '' -->
 
-
+<img class="logo" src="https://portale.units.it/themes/custom/units_base/images/logo_footer.svg"></img>
 # Generalized Reserve Set Covering Problem with Buffer and Connectivity Requirements
 #### Camilla Bigotto, Anna Guccione
-<img class="logo" href="https://portale.units.it/themes/custom/units_base/images/logo_footer.svg"></img>
+
+Source: 
 
 
 
@@ -440,8 +441,6 @@ $$
 ### Valid inequalities
 * To improve lower bounds 3 families of valid inequalities are also separated
 
-
-
 | Cut                            | Ensure that                                                  |
 | ------------------------------ | ------------------------------------------------------------ |
 | **SC** (Species Cuts)          | If a specie is protected, at least one node in $V_s$ is taken |
@@ -462,6 +461,7 @@ $$
   * $i_{in}$ (entry)
   * $i_{out}$ (exit)
 * The arcs and their capacities are defined as follows:
+<div class="center">
 
   | Arc           | Capacity      |
   | ------------- | ------------- |
@@ -469,6 +469,7 @@ $$
   | $r \to i_{in}$   | $\tilde{y}_i$ |
   | $i_{out} \to j_{in}$ | $\infty$      |
 
+</div>
 
 > The arc with $\infty$ capacity forces the flow to pass through the internal node arcs (with capacity $\tilde{z}_i$)
 
