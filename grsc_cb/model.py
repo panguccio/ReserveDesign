@@ -13,6 +13,8 @@ INF = 1e9  # large constant
 EPS = 1e-6  # small constant
 
 
+
+
 class GRSC_CB_Model:
     """
     Complete mathematical model for the GRSC-CB (Generalized Reserve Set Covering problem with Connectivity and Buffer constraints).
@@ -601,7 +603,6 @@ class GRSC_CB_Model:
     def get_time(self):
         if self.model.Status != gb.GRB.INFEASIBLE:
             return self.model.Runtime
-        return 0
     
     def print_graph(self, with_labels=False):
         self.instance.G.draw_graph(x=self.x, z=self.z, with_buffer=self.B, with_labels=with_labels)

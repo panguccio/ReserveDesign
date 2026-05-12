@@ -2,6 +2,8 @@
 
 @import 'default';
 
+
+
 /* ============================================================
    GRSC-CB — Nature Reserve Optimization
    MARP Custom Theme
@@ -345,6 +347,12 @@ section::after {
   grid-template-columns: 1fr 1fr 1fr;
   gap: 1.5em;
   align-items: start;
+}
+
+img {
+  max-height: 450px;
+  display: block;
+  margin: 0 auto;
 }
 
 /* ── Legend chips (for graph coloring explanations) ────────── */
