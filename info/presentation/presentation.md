@@ -411,7 +411,7 @@ $$
 
 ## GRSC-CB: GRSC with Buffer and Connectivity
 
-### GRSC-B model:
+### GRSC-CB model:
 
 ###
 $$
