@@ -14,7 +14,6 @@ paginate: true
 # Generalized Reserve Set Covering Problem with Buffer and Connectivity Requirements
 #### Camilla Bigotto, Anna Guccione
 
-Source: 
 
 
 
@@ -30,6 +29,8 @@ Source:
     * **Connectivity**: to avoid spatial fragmentation
     *  **Buffer zones**: surrounding/protecting the core areas
 * **General Reserve Set Covering Problem with Connectivity and Buffer Requirements**
+
+>  Original authors of the paper: Álvarez-Miranda, Goycoolea, Ljubić, Sinnl (European Journal of Operational Research, 2021), available at https://www.sciencedirect.com/science/article/abs/pii/S0377221719305818
 ---
 
 ## The GRSC-CB problem
