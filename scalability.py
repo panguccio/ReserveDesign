@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 import gurobipy as gp
-gp.setParam('OutputFlag', 0)
 
 # number of land parcels
 min_n, max_n, step = 100, 5100, 1000
