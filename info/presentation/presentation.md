@@ -45,10 +45,11 @@ paginate: true
 | **GRSC-C**  | + connectivity constraints                             |
 | **GRSC-CB** | B + C (full model)                                     |
 
-* The solution is enhanced with:
-    * Valid inequalities (cover, species, species-cover-cuts)
-    * Construction + primal heuristic
-    * Local branching heuristic
+  * Branch and cut framework
+  * Heuristics: 
+    * Construction
+    * Primal
+    * Local-branching
 
 ---
 # Generalized Reserve Set Covering Problem
@@ -64,7 +65,7 @@ paginate: true
   * A set V of **land sites**
   * A set of **species** S
   * $\forall s \in S$ a set of suitable land sites $V_s \subseteq V$
-* Find the minimum number of reserve sites such that each species is presented in the selected set of sites at least once.
+* Find the minimum number of reserve sites such that each species is present in the selected set of sites at least once.
 * A **graph** was considered with:
   * as **nodes** the land sites
   * an **edge** is present between 2 land sites if they share a border
@@ -83,7 +84,8 @@ paginate: true
 
 ## RSC: Reserve Set Covering problem
 
-### Variable
+
+#### Variable
 
 $x_i$ with $1 \leq i \leq |V|$ defined as:
 $$
@@ -96,14 +98,14 @@ $$
   \end{align*}
 $$
 
-### Constraint
-#### COV
-Each specie needs to be covered by a suitable land site.
+#### Constraint
+##### COV
+Each species needs to be covered by a suitable land site.
 $$
 \sum_{i \in V_s} x_i\geq 1, \forall s \in S
 $$
 
-### Objective Function
+#### Objective Function
 
 **Minimize** the number of land sites
 
@@ -117,37 +119,28 @@ $$
 
 ## GRSC: Generalized RSC
 
-* Generalizes the RSC by adding **suitability scores**, **quotas** and **land costs**.
-
 ### Definitions
+#### Cost
+* $c:V \rightarrow \mathbb{R} ^+$ → **cost function** of choosing the site $i \in V$ to be in the reserve
 
 #### Quotas of ecological suitability
 
-* $S_1$ $\subseteq S$ → set of species that need to stay in the core area
-* $S_2$ $\subseteq S, S_1 \cup S_2 = S, S_1 \cap S_2 = \varnothing$ → the other species
-* $w: V\times S \rightarrow \mathbb{R} ^+$ → **habitat suitability function** measures how advisable is a site $i \in V$ for a specie $s \in S$
-* therefore we can define $V_s = \{i\in V| w(s,i) > 0\}$ 
+* $w: V\times S \rightarrow \mathbb{R} ^+$ → **habitat suitability function** measures suitability of $i \in V$ for a species $s \in S$
 * $\lambda_s$ $\geq 0$ → **minimum quota of ecological suitability** for $s$
+* $s \in S$ is considered **protected** if $\sum_{i \in V_s} w(i,s) \geq \lambda_s$
+#### Species
+* $S_1  \subseteq S$ → set of species that need to stay in the core area
+* $S_2 = S \setminus S_1$ -> can live anywhere
+
+* $P_1$ and $P_2$: minimum number of species respectively in $S_1$ and $S_2$ that the reserve needs to protect
+
+
 
 ---
 
 ## GRSC: Generalized RSC
 
-### Definitions
-#### Protection
-
-* $s \in S$ is considered **protected** if $\sum_i w(i,s) \geq \lambda_s$
-* $0\leq$ $P_1$ $\leq |S_1|$, $0\leq$ $P_2$ $\leq |S_2|$, minimum number of species respectively in $S_1$ and $S_2$ that the reserve needs to protect
-
-#### Cost
-
-* $c:V \rightarrow \mathbb{R} ^+$ → **cost function** of choosing the site $i \in V$ to be in the reserve
-
----
-
-## GRSC: Generalized RSC
-
-### Variables
+#### Variables
 
 * $x_i$ defined as before
 
@@ -169,7 +162,7 @@ $$
   \begin{align*}
   u_s =
   \begin{cases}
-  1, & \text{if the specie $s \in S$ is protected by the reserve}\\
+  1, & \text{if the species $s \in S$ is protected by the reserve}\\
   0, & \text{otherwise}
   \end{cases}
   \end{align*}
@@ -181,11 +174,11 @@ The solution will be a tuple $(u,x,z)$
 
 ## GRSC: Generalized RSC
 
-### Constraints
+#### Constraints
 
 ##### S1-SQ
 
-If a specie in $S_1$ is protected, the habitat suitability score for the land sites part of the core area must be at least the minimum quota of ecological suitability of that specie.
+If a species in $S_1$ is protected, the habitat suitability score for the land sites part of the core area must be at least the minimum quota of ecological suitability of that species .
 $$
 \sum_{i\in V_s} w(i, s)z_i \geq \lambda_s u_s \quad \forall s \in S_1
 $$
@@ -194,7 +187,7 @@ $$
 
 ##### S2-SQ
 
-Similarly for a specie in $S_2$, considering land sites in the whole reserve.
+Similarly for a species in $S_2$, considering land sites in the whole reserve.
 $$
 \sum_{i\in V_s} w(i, s)x_i \geq \lambda_s u_s \quad \forall s \in S_2
 $$
@@ -203,7 +196,7 @@ $$
 
 ## GRSC: Generalized RSC
 
-### Constraints
+#### Constraints
 
 ##### S1-PROTECT
 
@@ -225,7 +218,7 @@ $$
 
 ## GRSC: Generalized RSC
 
-### Constraints
+#### Constraints
 
 ##### LINK
 
@@ -234,7 +227,7 @@ $$
 z_i \leq x_i \quad \forall i \in V
 $$
 
-### Objective function
+#### Objective function
 
 ##### COST
 
@@ -246,7 +239,7 @@ $$
 ---
 ## GRSC: Generalized RSC
 ### GRSC model
-###
+
 $$
 \begin{align*}
 & GRSC : \min \{\gamma(u,x,z) | \\ & (S1\text{-}SQ), (S2\text{-}SQ), (S1\text{-}PROTECT), (S2\text{-}PROTECT), (LINK)\}
@@ -261,15 +254,13 @@ $$
 
 ## GRSC-B: GRSC with Buffer requirements
 
-* For defining the buffer area, a concept of neighborhood is introduced.
-
-### Definitions
-
-#### $d$-neighborhood
-* To model the buffer surrounding the selected core areas we define the $d$-neighborhood set of a node $i$ as 
 
 
-* For $d \geq 0, d \in \mathbb{N}, i \in V$ the       $d$-neighborhood is defined as the set of sites at distance $d$ from $i$.
+#### $d$-neighbourhood
+* To model the buffer surrounding the selected core areas we define the $d$-neighbourhood set of a node $i$ as 
+
+
+* For $d \geq 0, d \in \mathbb{N}, i \in V$ the       $d$-neighbourhood is defined as the set of sites at distance $d$ from $i$.
   $$
   \begin{align*}
   
@@ -277,26 +268,25 @@ $$
   
   \end{align*}
   $$
-* $\delta_d^+(i)$ it the d-neighborhood that contains also $i$.
+* $\delta_d^+(i)$ it the d-neighbourhood that contains also $i$.
 
 > In the implementation: the distances are precomputed using `nx.ego_graph` and stored as a `frozenset`.
 
 ---
 
 ## GRSC-B: GRSC with Buffer requirements
-
-### Constraints
+#### Constraints
 
 ##### d-BUFF.1
 
-Every core site is surrounded by a buffer area of normal sites in its $d$-neighborhood
+Every core site is surrounded by a buffer area of normal sites in its $d$-neighbourhood
 $$
 z_i \leq x_j, \quad \forall j \in \delta_d(i), \quad \forall i \in V
 $$
 
 ##### d-BUFF.2
 
-Every normal site must have at least one core site in the $d$-neighborhood
+Every normal site must have at least one core site in the $d$-neighbourhood
 $$
 x_i \leq \sum_{j \in \delta_d(i)} z_j \quad \forall i \in V
 $$
@@ -306,7 +296,6 @@ $$
 ## GRSC-B: GRSC with Buffer requirements
 
 ### GRSC-B model:
-###
 
 $$
 \begin{align*}
@@ -317,12 +306,11 @@ $$
 ---
 ## GRSC-C: GRSC with Connectivity requirements
 
-### Definitions
 #### $r$-arc-node-separator
 
 * To model connectivity, a root $r$ is added to the graph, obtaining $G_r$, where each node is connected to the root with an arc
 * The arcs $(r, i)$ are called **$r$-arcs** ($A_r$)
-* Given a node $l$, an **$r$-arc-node-separator** ($W=(W_V, W_A)$) is the set of arcs and nodes  such that if they're removed from $G_r$, then the site $l$ can't be reached by $r$
+* Given a node $l$, an **$r$-arc-node-separator** ($W=(W_V, W_A)$) is the set of nodes and arcs  such that if they're removed from $G_r$, then the site $l$ can't be reached by $r$
 * $W_l$ is the set of all $r$-arc-node-separators w.r.t $l$
 * **Connectivity requirement**: every site must have a path from $r$
 
@@ -330,7 +318,7 @@ $$
 
 ## GRSC-C: GRSC with Connectivity requirements
 
-### Variables
+#### Variables
 
 * $(u, x, z)$ defined as before
 * Let $y_i, 1 \leq i \leq |V|$ be an auxiliary variable 
@@ -344,7 +332,7 @@ $$
   \end{align*}
   $$
 * Each $y_i$ represents a **connected component root**.
-### Constraints
+#### Constraints
 
 Let $k$ be the max number of connected components in the reserve.
 
@@ -360,21 +348,23 @@ $$
 
 ## GRSC-C: GRSC with Connectivity requirements
 
-### Constraints
+#### Constraints
+
+##### YX
+If a site $i$ is connected to the root, then it must be considered in the reserve area.
+
+$$
+y_i \leq x_i \quad \forall i \in V
+$$
 
 ##### ALLCON
+If the land site $l$ is in the reserve area of the solution, then for all the $W \in W_l$, I must have at least one node from $W_V$ or one arc from $W_A$. 
 
-If a site $i$ is connected to the root, then it must be considered in the reserve area.
 $$
 \sum_{i \in W_V} x_i + \sum_{j \in W_A} y_j \geq x_l, \quad \forall W \in W_l, \quad \forall l \in V
 $$
 
-##### YX
 
-If the land site $l$ is in the reserve area of the solution, then for all the $W \in W_l$, I must have at least one node from $W_V$ or one arc from $W_A$. 
-$$
-y_i \leq x_i \quad \forall i \in V
-$$
 
 ---
 
@@ -382,7 +372,6 @@ $$
 
 ### GRSC-C model:
 
-###
 $$
 \begin{align*}
 & GRSC\text{-}C : \min \{\gamma(u,x,z) | \\ & (S1\text{-}SQ), (S2\text{-}SQ), (S1\text{-}PROTECT), (S2\text{-}PROTECT), (LINK) \\ &  (ALLCON), (YX), (NCOMP) \}
@@ -393,7 +382,7 @@ $$
 
 ## GRSC-CB: GRSC with Buffer and Connectivity
 
-### Constraints
+#### Constraints
 
 ##### YZ (replaces YX)
 
@@ -415,7 +404,7 @@ $$
 
 ### GRSC-CB model:
 
-###
+
 $$
 \begin{align*}
 & GRSC\text{-}CB : \min \{\gamma(u,x,z) | \\ & (S1\text{-}SQ), (S2\text{-}SQ), (S1\text{-}PROTECT), (S2\text{-}PROTECT), (LINK) \\ & (d\text{-}BUFF.1), (d\text{-}BUFF.2) \\ &  (CORECON), (YZ), (NCOMP) \\ & (u, x, z, y) \in \{0,1\}^{|S|+3|V|} \}
@@ -426,11 +415,13 @@ $$
 # Branch-and-cut framework
 
 ---
-## Branch-and-cut framework
+## Motivations
 
 * In the GRSC-CB and GRSC-C, the family of constraints caused by **connectivity cuts** (CORECON and ALLCON) are <u>exponential</u> in number
-* Therefore, a **branch-and-cut** framework is built to separate the connectivity cuts
+* Since they must account for every possible $r$-arc-node-separator, which grows quickly with the dimension of the instance
+* Therefore, a **branch-and-cut** framework is built to separate the connectivity constraints
 * `lazy constraints` are added to the model once a violation is found during optimization
+
 
 > Only CORECON is described, since ALLCON is symmetrical
 
@@ -438,27 +429,75 @@ $$
 
 ---
 
-## Branch-and-cut framework
-### Valid inequalities
-* To improve lower bounds 3 families of valid inequalities are also separated
+## Valid inequalities
+* To improve lower bounds and narrow the search space, 3 families of valid inequalities are also separated during the LP relaxation
 
 | Cut                            | Ensure that                                                  |
 | ------------------------------ | ------------------------------------------------------------ |
-| **SC** (Species Cuts)          | If a specie is protected, at least one node in $V_s$ is taken |
-| **COVER** (Cover Inequalities) | At least one parcel from the $C_s$ is taken in the reserve   |
+| **COVER** (Cover Inequalities) | If a specie is protected, at least one parcel from the $C_s$ is taken in the reserve   |
+| **SC** (Species Cuts)          | If a species is protected, at least one node in $V_s$ is connected to the root $r$ |$\sum_{i\in W_V} z_i + \sum_{j \in W_A } y_j \geq u_s, \quad \forall W \in W_s, s\in S_1$|
 | **SCC** (Species-Cover Cuts)   | Like **SC**, but considering $C_s$ instead of $V_s$          |
-* Where the set  $C_s \subset V_s$ (**Cover**) is such that  $V_s \setminus C_s$ is not enough to satisfy the sustainability quota for that specie
-> In the implementation, SC cuts were not considered, since SCC cuts are stronger
+* Where the set  $C_s \subset V_s$ (**Cover**) contains the indespensable nodes, such that  $V_s \setminus C_s$ is not enough to satisfy the sustainability quota for that species 
+> In the implementation, SC cuts were not considered, since SCC are stronger
+
+---
+##  Implementation
+At each **integer node** (`MIPSOL` callback):
+1. Separate **CORECON** (integer) -> if violated, add cut
+
+At each **LP relaxation node** (`MIPNODE` callback):
+  1. Separate **COVER** and separate **SCC** -> if violated, add cut 
+  3. If no violated inequality is found, separate **CORECON** (fractional) -> if violated, add cut
+
+Code structure:
+```python
+model.Params.LazyConstraints = 1
+...
+def callback(where):
+  if where == MIPSOL: # -> integer solution
+    cuts ← separate_CORECON()
+    model.cbLazy(cuts as constraint)
+
+  if where == MIPNODE: # -> LP relaxation
+  cuts ← separate_COVER() + separate_SCC()
+    if cuts is empty:
+        cuts ← separate_CORECON()
+    model.cbLazy(cuts as constraint)
+...
+model.optimize(callback)
+```
+
 ---
 
-## Branch-and-cut framework
-### Constraint separation
-#### CORECON (fractional) separation
+##  CORECON separation
+#### Integer solution
+
+* $H$ = connected component of the core induced by $\tilde{z}_i = 1$ that does **not** contain any root arc (i.e., $\tilde{y}_i = 0$ for all $i \in H$) → the component is disconnected from $r$
+
+* The connectivity cut is defined as $(W_V, W_A)$ such that:
+$$
+\begin{align*}
+W_V = \{j \mid \{i,j\} \in E,\ i \in H,\ j \notin H\}, W_A = H
+\end{align*}
+$$
+* For each H, the lazy constraint added:
+$$
+\sum_{i\in W_V} z_i + \sum_{j \in W_A } y_j \geq z_l, \quad \forall W \in W_l, \quad \forall l \in V
+$$
+
+> In the implementation: the connected component are computed using the **NetworkX** method `connected_components`
+
+
+---
+
+##  CORECON  separation
+
+#### Fractional solution
 
 * Let $\rho = (\tilde{u},\tilde{x},\tilde{z}, \tilde{y})$ is a solution of the LP relaxation at the current node of the branch-and-bound tree
 
 
-* **Node splitting** is used to create a digraph: every node $i$ is split into two copies:
+* A digraph with root $r$ is built using **node splitting**, every node $i$ is split into two copies:
   * $i_{in}$ (entry)
   * $i_{out}$ (exit)
 * The arcs and their capacities are defined as follows:
@@ -476,16 +515,12 @@ $$
 
 ---
 
-## Branch-and-cut framework
-### Contraint separation
-#### CORECON (fractional) separation
+##  CORECON  separation
 
-
-* For each node $\mathscr l$ with $\tilde z \geq \tau$, compute the **min-cut** from $r$ to $\mathscr l$ in the digraph.
-* If the cut value is $\le \tilde z$, then this CORECON inequality is violated:
-$$
-\sum_{i\in \overline{W}_V} \tilde{z}_i + \sum_{j \in \overline{W}_A} \tilde{y}_j < \tilde{z}_l
-$$
+#### Fractional solution
+* Consider each node $\mathscr l$ with $\tilde z \geq \tau$
+* The **min-cut** is found between the root and each node $\mathscr l$
+* If the cut value is $\le \tilde z$, then the CORECON inequality is violated
 * The connectivity cut is defined as $(\overline{W}_V, \overline{W}_A)$ such that:
 
 $$
@@ -493,48 +528,24 @@ $$
 $$
 
 
-* The violated inequality is added as a **lazy constraint** to the LP.
+* Lazy constraint added:
+$$
+\sum_{i\in W_V} z_i + \sum_{j \in W_A } y_j \geq z_l, \quad \forall W \in W_l, \quad \forall l \in V
+$$
 > In the implementation: the min-cut is computed using the **igraph** method `mincut`
 
----
-
-## Branch-and-cut framework
-### Contraint separation
-#### CORECON (Integer) separation 
-
-* $H$ = connected component of the core induced by $\tilde{z}_i = 1$ that does **not** contain any root arc (i.e., $\tilde{y}_i = 0$ for all $i \in H$) → the component is disconnected from $r$
-
-* The connectivity cut is defined as $(W_V, W_A)$ such that:
-$$
-\begin{align*}
-W_V = \{j \mid \{i,j\} \in E,\ i \in H,\ j \notin H\}, W_A = H
-\end{align*}
-$$
-* Add the CORECON inequality for each disconnected component
-
-> In the implementation: the connected component are computed using the **NetworkX** method `connected_components`
 
 ---
-## Branch-and-cut framework
-### Contraint separation
-#### CORECON  separation 
-
+## CORECON  separation 
+#### Downlifting
 * In both the fractional and integer case, **downlifting** is done
 * Not all $j \in W_A$ are considered, but only $j \leq \mathscr l$
 * So all connected components are rooted to the node with smallest index
 
 ---
-## Branch-and-cut framework
+##  COVER separation
 
-### Contraint separation
-
-#### SCC separation
-* Similar process to CORECON
-* **Difference**: applied to the cover set $C_s$ (connected to a sink node) instead of a single node $\mathscr l$
-
-#### COVER separation
-
-* The cuts are the solutions of a knapsack-problem:
+* The **cover** will be the solution of a knapsack-problem:
 
 $$
 \begin{align*}
@@ -544,44 +555,34 @@ $$
 
 > To solve it, a heuristic is followed (greedy knapsack): sort nodes in non-decreasing way order of $\tilde{z}_j / w_j^s$; greedly pick until $\sum_{j\in C_s} w_j^s \geq W_s - \lambda_s$
 
+* Lazy constraints added:
+$$
+\sum_{i\in C_s} z_i \geq u_s, \text{if } s \in S_1
+$$ 
+$$
+\sum_{i\in C_s} x_i \geq u_s, \text{if } s \in S_2
+$$ 
+
 ---
-## Branch-and-cut framework
-### Implementation
+##  SCC separation
 
-At each **LP relaxation node** (`MIPNODE` callback):
-  1. Separate **COVER** and separate **SCC** -> if violated, add cut 
-  3. If no violated inequality is found, separate **CORECON** (fractional) -> if violated, add cut
+* Similar process to CORECON
+* **Difference**: applied to the cover set $C_s$  instead of a single node $\mathscr l$
+  * An artificial sink node is added to the directed graph
+  * For a certain specie $s$, every node in $C_s$ is connected to the sink node
+  * The min-cut is found between the root and the sink
 
-At each **integer node** (`MIPSOL` callback):
-1. Separate **CORECON** (integer) -> if violated, add cut
-
-```python
-model.Params.LazyConstraints = 1
-model.optimize(callback)
-...
-def callback(model, where):
-  if where == GRB.Callback.MIPSOL:
-    ... # handle separate CORECON integer
-    model.cbLazy(...)
-  
-  if where == GRB.Callback.MIPNODE:
-    ... # handle separate COVER and SCC
-    model.cbLazy(...)
-    
-    if not violated:
-      ... # handle separate CORECON fractional 
-      model.cbLazy(...)
-```
-
+* Lazy constraint added:
+$$
+\sum_{i\in W_V} z_i + \sum_{j \in W_A } y_j \geq u_s, \quad \forall W \in W_s, s\in S_1
+$$
 
 ---
 # Heuristics
 ---
 
-## Heuristics
-
-### Construction heuristic
-
+## Construction heuristic
+#### Structure
 
 * The construction heuristic generates a starting solution for initializing the branch-and-cut
   * **Phase 1**: creates a feasible solution in a greedy fashion
@@ -591,12 +592,10 @@ def callback(model, where):
 
 ---
 
-## Heuristics
-
-### Construction heuristic
+## Construction heuristic
 * Let $T(S)$ = set of **helpful** nodes not yet in $S_z$:
 a node is helpful if adding it to the core could protect at least one currently unprotected species.
-#### Phase 1
+##### Phase 1
 
 1. Pick $k$ random nodes as roots (one per component); add them to $S_z$, expand $S_x$ with their buffer
 2. **While** (PROTECT) not satisfied:
@@ -607,10 +606,9 @@ a node is helpful if adding it to the core could protect at least one currently 
 > The computation of the shortest-path is done with the **NetworkX** Dijkstra algorithm `nx.multi_source_dijkstra`, weighted by a specific node-cost function that depends on suitability gain
 
 ---
-## Heuristics
 
-### Construction heuristic
-#### Phase 2
+## Construction heuristic
+##### Phase 2
 * We iterate through the nodes $i \in S_z$ and check if, after removing $i$, the solution remains feasible.
 * The iteration is started with the node that causes the largest improvement in the objective function if removed
 * Together with $i$ we remove also the nodes from $\delta_d(i)$ which become redundant after removing $i$
@@ -621,27 +619,26 @@ a node is helpful if adding it to the core could protect at least one currently 
 
 ---
 
-## Heuristics
-### Primal heuristic
+## Primal heuristic
 * Incorporated in the **branch-and-cut** framework (as a callback)
-#### Phase 1
+##### Phase 1
 
 * Essentially the same as the construction heuristic, but the **node-cost** function is changed to account for nodes already/partially selected in the LP solution
 
-#### Phase 2
+##### Phase 2
 * The same as the construction heuristic
 
 > The found solution is injected via `cbSetSolution`
 
 ---
-## Heuristics
-### Local-branching heuristic
+
+## Local-branching heuristic
 
 * Before the main MIP, the solution found by the construction heuristic is improved by adding the constraint: 
   $$
   \sum_{i \in S_z} z_i \geq |S_z|-r
   $$
-* This seaches for a better solution in the $r$-neighborhood while ensuring that most of the core land parcels of the solution $S$ also belongs to the new solution
+* This seaches for a better solution in the $r$-neighbourhood while ensuring that most of the core land parcels of the solution $S$ also belongs to the new solution
 * $r$ is incremented iteratively until a better solution is found or until the iteration limit is reached
 > In our implementation we used $r=5$, time limit= $20s, \Delta_r=5, r_{max}=20$
 
@@ -668,7 +665,6 @@ The system was tested on instances according to the quantities described in the 
 
 ---
 ## Results
-### Example
 
 <div class="cols">
 <div>
@@ -687,7 +683,6 @@ The system was tested on instances according to the quantities described in the 
 
 ---
 ## Results
-### Example
 <div class="cols">
 <div>
 
@@ -710,15 +705,41 @@ The system was tested on instances according to the quantities described in the 
   * $n_{min} = 100$  
   * $n_{max} = 5100$
   * $n_{step} = 100$
-* We compared the solving time of the model with basic configuration and with the heuristcs
+* We compared the solving time of the model with basic configuration and with the heuristics
 * Results showed: 
   * little to no improvement using the heuristics
   * an exponential increase of solving time starting from $n=3000$ 
+---
+## Results
+Average over 10 instances, for the complete configuration
+![grsc-cb](./images/solvingtime-exp.png)
+
+---
+## Results
+Amount of cuts added during the gurobi optimization, for 4 different configurations
+![grsc-cb](./images/cuts.png)
 
 
 ---
 ## Results
-### Scalability
 
-![grsc-cb](./images/solvingtime-options.png)
 
+<div class="cols-12">
+<div >
+
+
+
+
+#### Heuristics
+Average over 10 instances (n=2000)
+![box-plots](./images/box-plots.png)
+
+</div>
+<div>
+
+#### Solving times
+Average over 3 instances, in the 3 possible configurations
+![solving times](./images/solvingtime-options.png)
+
+</div>
+</div>
