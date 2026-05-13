@@ -120,7 +120,7 @@ class GRSC_CB_Model:
             # Buffer zones: if a parcel is in the buffer, there must be a core in the d-neighborhood
             for i in instance.V:
                 self.model.addConstr(
-                    self.x[i] <= gb.quicksum(self.z[j] for j in instance.delta_d(i)),
+                    self.x[i] <= gb.quicksum(self.z[j] for j in instance.delta_d_plus(i)),
                     name=f"d-BUFF.2-{i}")
         
         # CONNECTIVITY CONSTRAINTS
@@ -452,13 +452,15 @@ class GRSC_CB_Model:
                             cutpool.append((WV, WA, l))
                         self.cnt['corecon-frc'] += 1
 
-                if cp_heuristic and model.cbGet(gb.GRB.Callback.MIPNODE_OBJBST) == gb.GRB.INFINITY:
+                if cp_heuristic:
+                    current_best = model.cbGet(gb.GRB.Callback.MIPNODE_OBJBST)
                     primal_solution = self.primal_heuristic(x_val, y_val)
                     if primal_solution and primal_solution.feasible():
-                        self.cb_inject_solution(model, primal_solution)
-                        if verbose:
-                            print(f"\t * Solution of Primal Heuristic injected. Nodes: {primal_solution.Sx}")
-            
+                        if primal_solution.objective() < current_best - EPS:
+                            self.cb_inject_solution(model, primal_solution)
+                            if verbose:
+                                print(f"\t * Solution of Primal Heuristic injected. Nodes: {primal_solution.Sx}")
+                
         return callback
 
     def local_branching(self, initial_solution: PartialSolution, r=5, delta_r=5, max_r=20, iteration_time_limit=20,
@@ -501,7 +503,7 @@ class GRSC_CB_Model:
 
             new_cuts = []
             self.init_counters()
-            self.model.optimize(self.make_callback(cutpool=new_cuts, verbose=True))
+            self.model.optimize(self.make_callback(cutpool=new_cuts))
             if verbose and sum(self.cnt.values()) > 0:
                 print(f"\t * Added constraints: {self.cnt}")
 
@@ -536,12 +538,15 @@ class GRSC_CB_Model:
         for i in self.instance.V:
             self.x[i].Start = 1 if i in solution.Sx else 0
             self.z[i].Start = 1 if i in solution.Sz else 0
+            self.y[i].Start = 0
 
         for s in self.instance.S:
             if solution.us(s):
                 self.u[s].Start = 1
             else:
                 self.u[s].Start = 0
+                
+
 
     def cb_inject_solution(self, model, solution: PartialSolution):
         # to update the solution during the primal heuristic, we need to use cbSetSolution
@@ -577,7 +582,10 @@ class GRSC_CB_Model:
             if verbose: print(f"\t * Starting construction heuristic...")
             initial_solution = self.construction_heuristic()
             if initial_solution:
-                if verbose: print(f"\t * Initial solution found with Construction Heuristic. Nodes: {initial_solution.Sx}")
+                heur_obj = initial_solution.objective()
+                if verbose: 
+                    print(f"\t * Initial solution found with Construction Heuristic. obj={heur_obj:.2f}. Nodes: {initial_solution.Sx}")
+                    print(initial_solution.Sx, initial_solution.Sz)
                 self.inject_solution(initial_solution)
             
 
@@ -594,6 +602,14 @@ class GRSC_CB_Model:
         
         if verbose and sum(self.cnt.values()) > 0:
             print(f"\t * Added constraints: {self.cnt}")
+        
+        opt_obj = self.model.ObjVal if self.model.Status == gb.GRB.OPTIMAL else None
+        if verbose:
+            print(f"\t * Optimization completed. Optimal objective: {opt_obj:.2f}" if opt_obj is not None else "\t * Optimization completed. No optimal solution found.")
+            if cp_heuristic and opt_obj is not None and initial_solution is not None:
+                    gap = abs(heur_obj - opt_obj) / opt_obj * 100
+                    print(f"\t * Gap of the initial solution: {gap:.2f}%")
+                
 
     def get_time(self):
         if self.model.Status != gb.GRB.INFEASIBLE:
