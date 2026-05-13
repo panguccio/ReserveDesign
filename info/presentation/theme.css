@@ -253,7 +253,7 @@ pre {
   border-radius: 8px;
   border-left: 4px solid var(--green-light);
   padding: 1em 1.2em !important;
-  font-size: 0.7em;
+  font-size: 0.6em;
   overflow: hidden;
 }
 
@@ -372,6 +372,7 @@ img {
   max-height: 450px;
   display: block;
   margin: 0 auto;
+  padding-top: 1em;
 }
 table {
   width: auto;

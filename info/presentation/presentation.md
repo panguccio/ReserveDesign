@@ -3,7 +3,7 @@ marp: true
 title: GRSC-CB presentation
 theme: grsc
 paginate: true
-
+math: mathjax
 ---
 <!-- _backgroundColor: #1a3d2b -->
 <!-- _color: white -->
@@ -64,8 +64,8 @@ paginate: true
 * Given:
   * A set V of **land sites**
   * A set of **species** S
-  * $\forall s \in S$ a set of suitable land sites $V_s \subseteq V$
-* Find the minimum number of reserve sites such that each species is present in the selected set of sites at least once.
+  $\forall s \in S$ a set of suitable land sites $V_s \subseteq V$
+* Find the minimum number of reserve sites such that each species is present in the selected set of sites at least once 
 * A **graph** was considered with:
   * as **nodes** the land sites
   * an **edge** is present between 2 land sites if they share a border
@@ -100,7 +100,7 @@ $$
 
 #### Constraint
 ##### COV
-Each species needs to be covered by a suitable land site.
+Each species needs to be covered by a suitable land site 
 $$
 \sum_{i \in V_s} x_i\geq 1, \forall s \in S
 $$
@@ -178,7 +178,7 @@ The solution will be a tuple $(u,x,z)$
 
 ##### S1-SQ
 
-If a species in $S_1$ is protected, the habitat suitability score for the land sites part of the core area must be at least the minimum quota of ecological suitability of that species .
+If a species in $S_1$ is protected, the habitat suitability score for the land sites part of the core area must be at least the minimum quota of ecological suitability of that species  
 $$
 \sum_{i\in V_s} w(i, s)z_i \geq \lambda_s u_s \quad \forall s \in S_1
 $$
@@ -187,7 +187,7 @@ $$
 
 ##### S2-SQ
 
-Similarly for a species in $S_2$, considering land sites in the whole reserve.
+Similarly for a species in $S_2$, considering land sites in the whole reserve 
 $$
 \sum_{i\in V_s} w(i, s)x_i \geq \lambda_s u_s \quad \forall s \in S_2
 $$
@@ -200,7 +200,7 @@ $$
 
 ##### S1-PROTECT
 
-At least $P_1$ species of $S_1$ must be protected. 
+At least $P_1$ species of $S_1$ must be protected  
 $$
 \sum_{s\in S_1} u_s \geq P_1
 $$
@@ -209,7 +209,7 @@ $$
 
 ##### S2-PROTECT
 
-At least $P_2$ species of $S_2$ must be protected. 
+At least $P_2$ species of $S_2$ must be protected  
 $$
 \sum_{s\in S_2} u_s \geq P_2
 $$
@@ -222,7 +222,7 @@ $$
 
 ##### LINK
 
-If a site is in the core, then it must also be in the reserve.
+If a site is in the core, then it must also be in the reserve 
 $$
 z_i \leq x_i \quad \forall i \in V
 $$
@@ -231,7 +231,7 @@ $$
 
 ##### COST
 
-Function that indicates the cost that needs to be **minimized**.
+Function that indicates the cost that needs to be **minimized** 
 $$
 \gamma(u,x,z) = \sum_{i\in V} c_i x_i
 $$
@@ -257,10 +257,10 @@ $$
 
 
 #### $d$-neighbourhood
-* To model the buffer surrounding the selected core areas we define the $d$-neighbourhood set of a node $i$ as 
+* To model the buffer surrounding the selected core areas, the $d$-neighbourhood set of a node $i$ is defined
 
 
-* For $d \geq 0, d \in \mathbb{N}, i \in V$ the       $d$-neighbourhood is defined as the set of sites at distance $d$ from $i$.
+* For $d \geq 0, d \in \mathbb{N}, i \in V$ the       $d$-neighbourhood is defined as the set of sites at distance $d$ from $i$ 
   $$
   \begin{align*}
   
@@ -268,9 +268,9 @@ $$
   
   \end{align*}
   $$
-* $\delta_d^+(i)$ it the d-neighbourhood that contains also $i$.
+* $\delta_d^+(i)$ it the d-neighbourhood that contains also $i$ 
 
-> In the implementation: the distances are precomputed using `nx.ego_graph` and stored as a `frozenset`.
+> In the implementation: the distances are precomputed using `nx ego_graph` and stored as a `frozenset` 
 
 ---
 
@@ -310,8 +310,8 @@ $$
 
 * To model connectivity, a root $r$ is added to the graph, obtaining $G_r$, where each node is connected to the root with an arc
 * The arcs $(r, i)$ are called **$r$-arcs** ($A_r$)
-* Given a node $l$, an **$r$-arc-node-separator** ($W=(W_V, W_A)$) is the set of nodes and arcs  such that if they're removed from $G_r$, then the site $l$ can't be reached by $r$
-* $W_l$ is the set of all $r$-arc-node-separators w.r.t $l$
+* Given a node $\mathscr l$, an **$r$-arc-node-separator** ($W=(W_V, W_A)$) is the set of nodes and arcs  such that if they're removed from $G_r$, then the site $\mathscr l$ can't be reached by $r$
+* $W _\mathscr l$ is the set of all $r$-arc-node-separators w.r.t $\mathscr l$
 * **Connectivity requirement**: every site must have a path from $r$
 
 ---
@@ -331,14 +331,14 @@ $$
   \end{cases}
   \end{align*}
   $$
-* Each $y_i$ represents a **connected component root**.
+* Each $y_i$ represents a **connected component root** 
 #### Constraints
 
-Let $k$ be the max number of connected components in the reserve.
+Let $k$ be the max number of connected components in the reserve 
 
 ##### NCOMP
 
-There's a max of $k$ connected components in the reserve.
+There's a max of $k$ connected components in the reserve 
 $$
 \sum_{j\in V} y_j \leq k
 $$
@@ -351,17 +351,17 @@ $$
 #### Constraints
 
 ##### YX
-If a site $i$ is connected to the root, then it must be considered in the reserve area.
+If a site $i$ is connected to the root, then it must be considered in the reserve area
 
 $$
 y_i \leq x_i \quad \forall i \in V
 $$
 
 ##### ALLCON
-If the land site $l$ is in the reserve area of the solution, then for all the $W \in W_l$, I must have at least one node from $W_V$ or one arc from $W_A$. 
+Every selected parcel in the reserve must be connected to the artificial root through at least one element of its corresponding r-arc-node-separators (one node from $W_V$ or one arc from $W_A$)
 
 $$
-\sum_{i \in W_V} x_i + \sum_{j \in W_A} y_j \geq x_l, \quad \forall W \in W_l, \quad \forall l \in V
+\sum_{i \in W_V} x_i + \sum_{j \in W_A} y_j \geq x _\mathscr l, \quad \forall W \in W _\mathscr l, \quad \forall \mathscr l \in V
 $$
 
 
@@ -386,16 +386,16 @@ $$
 
 ##### YZ (replaces YX)
 
-If a site $i$ is connected to the root, then it must be considered in the **core** area.
+If a site $i$ is connected to the root, then it must be considered in the **core** area 
 $$
 y_i \leq z_i \quad \forall i \in V
 $$
 
 ##### CORECON (replaces ALLCON)
 
-If the land site $l$ is in the **core** area of the solution, then for all the $W \in W_l$, I must have at least one node from $W_V$ or one arc from $W_A$. 
+Every selected parcel in the **core** of the reserve must be connected to the artificial root through at least one element of its corresponding r-arc-node-separators (one node from $W_V$ or one arc from $W_A$)
 $$
-\sum_{i\in W_V} z_i + \sum_{j \in W_A } y_j \geq z_l, \quad \forall W \in W_l, \quad \forall l \in V
+\sum_{i\in W_V} z_i + \sum_{j \in W_A } y_j \geq z _\mathscr l, \quad \forall W \in W _\mathscr l, \quad \forall \mathscr l \in V
 $$
 
 ---
@@ -482,7 +482,7 @@ W_V = \{j \mid \{i,j\} \in E,\ i \in H,\ j \notin H\}, W_A = H
 $$
 * For each H, the lazy constraint added:
 $$
-\sum_{i\in W_V} z_i + \sum_{j \in W_A } y_j \geq z_l, \quad \forall W \in W_l, \quad \forall l \in V
+\sum_{i\in W_V} z_i + \sum_{j \in W_A } y_j \geq z_\mathscr l, \quad \forall W \in W _\mathscr l, \quad \forall \mathscr l \in V
 $$
 
 > In the implementation: the connected component are computed using the **NetworkX** method `connected_components`
@@ -530,7 +530,7 @@ $$
 
 * Lazy constraint added:
 $$
-\sum_{i\in W_V} z_i + \sum_{j \in W_A } y_j \geq z_l, \quad \forall W \in W_l, \quad \forall l \in V
+\sum_{i\in W_V} z_i + \sum_{j \in W_A } y_j \geq z _\mathscr l, \quad \forall W \in W _\mathscr l, \quad \forall \mathscr l \in V
 $$
 > In the implementation: the min-cut is computed using the **igraph** method `mincut`
 
@@ -568,7 +568,7 @@ $$
 
 * Similar process to CORECON
 * **Difference**: applied to the cover set $C_s$  instead of a single node $\mathscr l$
-  * An artificial sink node is added to the directed graph
+  * An artificial **sink** node is added to the directed graph
   * For a certain specie $s$, every node in $C_s$ is connected to the sink node
   * The min-cut is found between the root and the sink
 
@@ -594,7 +594,7 @@ $$
 
 ## Construction heuristic
 * Let $T(S)$ = set of **helpful** nodes not yet in $S_z$:
-a node is helpful if adding it to the core could protect at least one currently unprotected species.
+a node is helpful if adding it to the core could protect at least one currently unprotected species 
 ##### Phase 1
 
 1. Pick $k$ random nodes as roots (one per component); add them to $S_z$, expand $S_x$ with their buffer
@@ -609,9 +609,9 @@ a node is helpful if adding it to the core could protect at least one currently 
 
 ## Construction heuristic
 ##### Phase 2
-* We iterate through the nodes $i \in S_z$ and check if, after removing $i$, the solution remains feasible.
+* Iterate through the nodes $i \in S_z$ and check if, after removing $i$, the solution remains feasible 
 * The iteration is started with the node that causes the largest improvement in the objective function if removed
-* Together with $i$ we remove also the nodes from $\delta_d(i)$ which become redundant after removing $i$
+* Together with $i$, also the nodes from $\delta_d(i)$ are removed, which become redundant after removing $i$
 * Repeat the process until no additional node can be removed
 
 > The variables in the found solution are injected in the model as `Start` values
@@ -640,14 +640,14 @@ a node is helpful if adding it to the core could protect at least one currently 
   $$
 * This seaches for a better solution in the $r$-neighbourhood while ensuring that most of the core land parcels of the solution $S$ also belongs to the new solution
 * $r$ is incremented iteratively until a better solution is found or until the iteration limit is reached
-> In our implementation we used $r=5$, time limit= $20s, \Delta_r=5, r_{max}=20$
+> In the implementation the configuration chosen was: $r=5$, time limit= $20s, \Delta_r=5, r_{max}=20$
 
 
 
 ---
 ## Results
 ### Example
-The system was tested on instances according to the quantities described in the paper.
+The system was tested on instances according to the quantities described in the paper 
 * Given
   * number of land parcels: $n = 100$ 
   * number of species: $m = 40$
@@ -660,7 +660,7 @@ The system was tested on instances according to the quantities described in the 
   * with probability 20% if the species $s$ is in $S_1$, 10% if $s$ in $S_2$
 * The cost of the land parcels is defined as $c_i \in [1, 100]$
 * The suitability quota is defined as: $\lambda_s = \lceil 0.05 \rceil \sum_{i \in V_S} w^s_i$
-* We generate a random instance graph using Delunaay triangulation
+* A random instance graph is generated using **Delaunay triangulation**
 
 
 ---
@@ -705,7 +705,7 @@ The system was tested on instances according to the quantities described in the 
   * $n_{min} = 100$  
   * $n_{max} = 5100$
   * $n_{step} = 100$
-* We compared the solving time of the model with basic configuration and with the heuristics
+* The solving time of the model with basic configuration was compared to the heuristics
 * Results showed: 
   * little to no improvement using the heuristics
   * an exponential increase of solving time starting from $n=3000$ 
