@@ -90,6 +90,8 @@ class PartialSolution:
         improved = True
         while improved:
             improved = False
+            best_i = None
+            best_saving = 0
             for i in self.Sz:
                 # find the buffer nodes to remove
                 other_cores = self.Sz - {i} #remove i from the core
@@ -114,9 +116,12 @@ class PartialSolution:
                     sum(1 for s in self.instance.S_2 if new_Ws[s] >= self.instance.lambda_s[s]) >= self.instance.P_2
                 ) #check if the new solution is still feasible
                 if still_ok:
-                    self.Sz = new_Sz
-                    self.Sx = new_Sx
-                    self.W_s = new_Ws
+                    saving = sum(self.instance.c[j] for j in removable_buffers) + self.instance.c[i]
+                    if saving > best_saving:
+                        best_saving = saving
+                        best_i = (i, new_Sz, new_Sx, new_Ws)
+                if best_i is not None:
+                    _, self.Sz, self.Sx, self.W_s = best_i
                     improved = True
                     break
                 
