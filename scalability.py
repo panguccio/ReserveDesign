@@ -6,14 +6,12 @@ from grsc_cb.reserve_graph import Graph
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-import gurobipy as gp
-
 # number of land parcels
-min_n, max_n, step = 100, 5100, 1000
+min_n, max_n, step = 1000, 4000, 500
 # number of species
 m = 30
 # number of max connected areas
-k = 3
+k = 1
 # range of habitat suitability function
 w_min, w_max = 20, 100
 # range of costs
