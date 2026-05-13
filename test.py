@@ -63,41 +63,43 @@ if __name__ == "__main__":
     # Reserve Set Covering Problem
     print(f"\nReserve Set Covering Problem\n{'-'*30}")
     model = GRSC_CB_Model(instance, simple=True, B=False, C=False)
-    model.solve()
+    model.solve(verbose=True)
     model.print_solution()
+    
 
     # Generalized Reserve Set Covering Problem
     print(f"\nGeneralized Reserve Set Covering Problem\n{'-'*30}")
     model = GRSC_CB_Model(instance, B=False, C=False)
-    model.solve()
+    model.solve(verbose=True)
     model.print_solution()
 
     # Generalized Reserve Set Covering Problem with Buffer requirements
     print(f"\nGeneralized Reserve Set Covering Problem with Buffer requirements\n{'-'*30}")
     model = GRSC_CB_Model(instance, C=False)
-    model.solve()
+    model.solve(verbose=True)
     model.print_solution()
 
     # Generalized Reserve Set Covering Problem with Connectivity requirements
     print(f"\nGeneralized Reserve Set Covering Problem with Connectivity requirements\n{'-'*30}")
     model = GRSC_CB_Model(instance, B=False)
-    model.solve()
+    model.solve(verbose=True)
     model.print_solution()
 
     # Generalized Reserve Set Covering Problem with Buffer and Connectivity requirements
     print(f"\nGeneralized Reserve Set Covering Problem with Buffer and Connectivity requirements\n{'-'*30}")
     model = GRSC_CB_Model(instance)
-    result = model.solve()
+    model.solve(verbose=True)
     model.print_solution()
 
     # GRSC-CB + Primal heuristic
     print(f"\nGRSC-CB + Primal heuristic\n{'-'*30}")
     model = GRSC_CB_Model(instance)
-    result = model.solve(cp_heuristic=True)
+    model.solve(cp_heuristic=True, verbose=True)
     model.print_solution()
 
     # GRSC-CB + Primal heuristic + Local Branching heuristic
     print(f"\nGRSC-CB + Primal heuristic + Local Branching heuristic\n{'-'*30}")
     model = GRSC_CB_Model(instance)
-    result = model.solve(cp_heuristic=True, lb_heuristic=True)
+    model.solve(cp_heuristic=True, lb_heuristic=True, verbose=True)
     model.print_solution()
+    
