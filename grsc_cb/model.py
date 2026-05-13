@@ -13,8 +13,6 @@ INF = 1e9  # large constant
 EPS = 1e-6  # small constant
 
 
-
-
 class GRSC_CB_Model:
     """
     Complete mathematical model for the GRSC-CB (Generalized Reserve Set Covering problem with Connectivity and Buffer constraints).
@@ -387,15 +385,12 @@ class GRSC_CB_Model:
         return solution
 
     def init_counters(self):
-        return {'corecon-int': 0, 'corecon-frc': 0, 'cover-s1': 0, 'cover-s2': 0, 'scc': 0}
+        self.cnt = {'corecon-int': 0, 'corecon-frc': 0, 'cover-s1': 0, 'cover-s2': 0, 'scc': 0}
     
-    def make_callback(self, cp_heuristic=False, cutpool=None, cnt=None, verbose=False):
+    def make_callback(self, cp_heuristic=False, cutpool=None, verbose=False):
         """
         Returns a branch-and-cut callback function.
         """
-        # standardize dictionary keys for counters
-        if cnt is None: 
-            cnt = self.init_counters()
         
         # local references to speed up access
         node_var = self.z if self.B else self.x
@@ -415,7 +410,7 @@ class GRSC_CB_Model:
                         gb.quicksum(y_vars[i]   for i in WA) >= node_var[l])
                     if cutpool is not None:
                         cutpool.append((WV, WA, l))
-                    cnt['corecon-int'] += 1
+                    self.cnt['corecon-int'] += 1
         
             # fractional solution (LP relaxation)
             if where == gb.GRB.Callback.MIPNODE:
@@ -435,17 +430,17 @@ class GRSC_CB_Model:
                 for (Cs, s) in cover_cuts:
                     if s in self.instance.S_1:
                         model.cbLazy(gb.quicksum(self.z[i] for i in Cs) >= self.u[s])
-                        cnt['cover-s1'] += 1
+                        self.cnt['cover-s1'] += 1
                     else:
                         model.cbLazy(gb.quicksum(self.x[i] for i in Cs) >= self.u[s])
-                        cnt['cover-s2'] += 1
+                        self.cnt['cover-s2'] += 1
                     violated_inequality_found = True
 
                 # separation of SCC constraints [z for the network, node_val for the cut]
                 for (WV, WA, s) in self.separate_SCC(z_val, y_val, u_val, cover_cuts):
                     model.cbLazy(
                         gb.quicksum(node_var[i] for i in WV) + gb.quicksum(y_vars[i]   for i in WA) >= self.u[s])
-                    cnt['scc'] += 1
+                    self.cnt['scc'] += 1
                     violated_inequality_found = True
 
                 # separation of CORECON constraints [z in CB, x in C]
@@ -455,7 +450,7 @@ class GRSC_CB_Model:
                             gb.quicksum(node_var[i] for i in WV) + gb.quicksum(y_vars[i]   for i in WA) >= node_var[l])
                         if cutpool is not None:
                             cutpool.append((WV, WA, l))
-                        cnt['corecon-frc'] += 1
+                        self.cnt['corecon-frc'] += 1
 
                 if cp_heuristic and model.cbGet(gb.GRB.Callback.MIPNODE_OBJBST) == gb.GRB.INFINITY:
                     primal_solution = self.primal_heuristic(x_val, y_val)
@@ -505,10 +500,10 @@ class GRSC_CB_Model:
             self.model.setParam('TimeLimit', min(iteration_time_limit, remaining))
 
             new_cuts = []
-            cnt = self.init_counters()
-            self.model.optimize(self.make_callback(cutpool=new_cuts, cnt=cnt,  verbose=True))
-            if verbose and sum(cnt.values()) > 0:
-                print(f"\t * Added constraints: {cnt}")
+            self.init_counters()
+            self.model.optimize(self.make_callback(cutpool=new_cuts, verbose=True))
+            if verbose and sum(self.cnt.values()) > 0:
+                print(f"\t * Added constraints: {self.cnt}")
 
             # add cuts to the model
             for (WV, WA, l) in new_cuts:
@@ -593,12 +588,12 @@ class GRSC_CB_Model:
                 self.x[i].Start = 1 if i in best_Sx else 0
                 self.z[i].Start = 1 if i in best_Sz else 0
         
-        cnt = self.init_counters()
+        self.init_counters()
         if verbose: print(f"\t * Starting gurobi optimization...")
-        self.model.optimize(self.make_callback(cp_heuristic=cp_heuristic, cnt=cnt, verbose=True))
+        self.model.optimize(self.make_callback(cp_heuristic=cp_heuristic, verbose=True))
         
-        if verbose and sum(cnt.values()) > 0:
-            print(f"\t * Added constraints: {cnt}")
+        if verbose and sum(self.cnt.values()) > 0:
+            print(f"\t * Added constraints: {self.cnt}")
 
     def get_time(self):
         if self.model.Status != gb.GRB.INFEASIBLE:
